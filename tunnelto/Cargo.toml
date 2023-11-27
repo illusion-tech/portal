@@ -38,10 +38,10 @@ structopt = "0.3.12"
 thiserror = "1.0"
 tokio = {version = "1.0", features = ["full"]}
 tokio-rustls = "0.24"
-tokio-tungstenite = {version = "0.14", features = ["rustls-tls"]}
-tungstenite = {version = "0.13", default-features = false, features = ["rustls-tls"]}
+tokio-tungstenite = {version = "0.20", features = ["rustls-tls-webpki-roots"]}
+tungstenite = {version = "0.20", default-features = false, features = ["rustls-tls-webpki-roots"]}
 tunnelto_lib = {version = "0.1.20", path = "../tunnelto_lib"}
-uuid = {version = "0.8.1", features = ["serde", "v4"]}
+uuid = {version = "1.6", features = ["serde", "v4"]}
 warp = "0.3"
 webpki = "0.22"
 webpki-roots = "0.25"
