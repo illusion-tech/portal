@@ -11,6 +11,7 @@ use uuid::Uuid;
 use warp::Filter;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Request {
     id: String,
     status: u16,
@@ -139,7 +140,7 @@ async fn collect_stream(
     let mut response_headers = [httparse::EMPTY_HEADER; 100];
     let mut response = httparse::Response::new(&mut response_headers);
 
-    let parts_len = match response.parse(&collected_response.as_slice()) {
+    let parts_len = match response.parse(collected_response.as_slice()) {
         Ok(httparse::Status::Complete(len)) => len,
         _ => 0,
     };
@@ -209,7 +210,7 @@ struct BodyData {
 
 impl AsRef<BodyData> for BodyData {
     fn as_ref(&self) -> &BodyData {
-        &self
+        self
     }
 }
 
@@ -220,12 +221,7 @@ enum DataType {
 }
 
 async fn inspector() -> Result<Page<Inspector>, warp::reject::Rejection> {
-    let mut requests: Vec<Request> = REQUESTS
-        .read()
-        .unwrap()
-        .values()
-        .map(|r| r.clone())
-        .collect();
+    let mut requests: Vec<Request> = REQUESTS.read().unwrap().values().cloned().collect();
     requests.sort_by(|a, b| b.completed.cmp(&a.completed));
     let inspect = Inspector { requests };
     Ok(Page(inspect))
@@ -255,13 +251,10 @@ fn get_body_data(input: &[u8]) -> BodyData {
             .unwrap_or("No UTF-8 Data".to_string()),
     };
 
-    match serde_json::from_slice::<serde_json::Value>(input) {
-        Ok(v) => {
-            body.data_type = DataType::Json;
-            body.content = serde_json::to_string(&v).ok();
-        }
-        _ => {}
-    }
+    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(input) {
+        body.data_type = DataType::Json;
+        body.content = serde_json::to_string(&v).ok();
+    };
 
     body
 }
@@ -279,7 +272,8 @@ async fn replay_request(
     tokio::spawn(async move {
         // keep the rx alive
         let mut rx = rx;
-        while let Some(_) = rx.next().await {
+
+        while (rx.next().await).is_some() {
             // do nothing
         }
     });

@@ -1,7 +1,16 @@
 {
     "cSpell.words": [
+        "Addrs",
+        "askama",
+        "chrono",
         "dashmap",
+        "httparse",
+        "indicatif",
         "libhoney",
-        "tunnelto"
+        "reqwest",
+        "rustls",
+        "spki",
+        "tunnelto",
+        "webpki"
     ]
 }

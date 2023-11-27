@@ -1,3 +1,5 @@
+use core::convert::TryFrom;
+
 use super::*;
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::{SinkExt, StreamExt};
@@ -5,8 +7,7 @@ use futures::{SinkExt, StreamExt};
 use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::io::{ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
-use tokio_rustls::rustls::ClientConfig;
-use tokio_rustls::webpki::DNSNameRef;
+use tokio_rustls::rustls::{ClientConfig, OwnedTrustAnchor, RootCertStore, ServerName};
 use tokio_rustls::TlsConnector;
 
 use crate::introspect::{self, introspect_stream, IntrospectChannels};
@@ -33,16 +34,26 @@ pub async fn setup_new_stream(
     };
 
     let local_tcp: Box<dyn AnyTcpStream> = if config.use_tls {
-        let dnsname = config.local_host;
-        let mut config = ClientConfig::new();
-        config
-            .root_store
-            .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-        let config = TlsConnector::from(Arc::new(config));
-        let dnsname =
-            DNSNameRef::try_from_ascii_str(dnsname.as_str()).ok()?;
+        let dns_name = config.local_host;
+        let mut root_store = RootCertStore::empty();
 
-        let stream = match config.connect(dnsname, local_tcp).await {
+        root_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(|ta| {
+            OwnedTrustAnchor::from_subject_spki_name_constraints(
+                ta.subject,
+                ta.spki,
+                ta.name_constraints,
+            )
+        }));
+
+        let config = ClientConfig::builder()
+            .with_safe_defaults()
+            .with_root_certificates(root_store)
+            .with_no_client_auth();
+
+        let config = TlsConnector::from(Arc::new(config));
+        let dns_name = ServerName::try_from(dns_name.as_str()).ok()?;
+
+        let stream = match config.connect(dns_name, local_tcp).await {
             Ok(s) => s,
             Err(e) => {
                 error!("failed to connect to TLS service: {}", e);

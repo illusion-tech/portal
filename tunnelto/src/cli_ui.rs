@@ -1,3 +1,4 @@
+use core::time::Duration;
 use std::net::SocketAddr;
 
 use crate::Config;
@@ -23,7 +24,7 @@ impl CliInterface {
 
     fn get_sub_domain_notice(&self, sub_domain: &str) -> Option<String> {
         if self.config.sub_domain.is_some()
-            && (self.config.sub_domain.as_ref().map(|s| s.as_str()) != Some(sub_domain))
+            && (self.config.sub_domain.as_deref() != Some(sub_domain))
         {
             if self.config.secret_key.is_some() {
                 Some(format!("{}",
@@ -39,13 +40,13 @@ impl CliInterface {
 
     pub fn did_connect(&self, sub_domain: &str, full_hostname: &str) {
         self.spinner
-            .finish_with_message("Success! Remote tunnel is now open.\n".green().as_ref());
+            .finish_with_message("Success! Remote tunnel is now open.\n".green().to_string());
 
         if !self.config.first_run {
             return;
         }
 
-        let public_url = self.config.activation_url(&full_hostname).bold().green();
+        let public_url = self.config.activation_url(full_hostname).bold().green();
         let forward_url = self.config.forward_url();
         let inspect = format!("http://localhost:{}", self.introspect.port());
 
@@ -84,14 +85,15 @@ impl CliInterface {
     }
 }
 
-fn new_spinner(message: &str) -> ProgressBar {
+fn new_spinner(message: &'static str) -> ProgressBar {
     let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(150);
+    pb.enable_steady_tick(Duration::from_millis(150));
     pb.set_style(
         ProgressStyle::default_spinner()
             // .tick_strings(&["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"])
             .tick_strings(&["🌎", "🌍", "🌏"])
-            .template("{spinner:.blue} {msg}"),
+            .template("{spinner:.blue} {msg}")
+            .expect("Failed to parse template"),
     );
     pb.set_message(message);
     pb
