@@ -1,6 +1,8 @@
+use base64::{engine::general_purpose, Engine as _};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
+use std::fmt;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
@@ -10,16 +12,14 @@ impl SecretKey {
         let mut rng = rand::thread_rng();
         Self(
             std::iter::repeat(())
-                .map(|_| rng.sample(rand::distributions::Alphanumeric))
+                .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
                 .take(22)
                 .collect::<String>(),
         )
     }
 
     pub fn client_id(&self) -> ClientId {
-        ClientId(base64::encode(
-            &sha2::Sha256::digest(self.0.as_bytes()).to_vec(),
-        ))
+        ClientId(general_purpose::STANDARD_NO_PAD.encode(sha2::Sha256::digest(self.0.as_bytes())))
     }
 }
 
@@ -46,7 +46,7 @@ impl ServerHello {
     pub fn random_domain() -> String {
         let mut rng = rand::thread_rng();
         std::iter::repeat(())
-            .map(|_| rng.sample(rand::distributions::Alphanumeric))
+            .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
             .take(8)
             .collect::<String>()
             .to_lowercase()
@@ -106,13 +106,11 @@ impl ClientId {
     pub fn generate() -> Self {
         let mut id = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut id);
-        ClientId(base64::encode_config(&id, base64::URL_SAFE_NO_PAD))
+        ClientId(general_purpose::URL_SAFE_NO_PAD.encode(id))
     }
 
     pub fn safe_id(self) -> ClientId {
-        ClientId(base64::encode(
-            &sha2::Sha256::digest(self.0.as_bytes()).to_vec(),
-        ))
+        ClientId(general_purpose::STANDARD.encode(sha2::Sha256::digest(self.0.as_bytes())))
     }
 }
 
@@ -125,11 +123,14 @@ impl StreamId {
         rand::thread_rng().fill_bytes(&mut id);
         StreamId(id)
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!(
+impl fmt::Display for StreamId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
             "stream_{}",
-            base64::encode_config(&self.0, base64::URL_SAFE_NO_PAD)
+            general_purpose::URL_SAFE_NO_PAD.encode(self.0)
         )
     }
 }
@@ -157,7 +158,7 @@ impl ControlPacket {
             ControlPacket::End(sid) => [vec![0x04], sid.0.to_vec()].concat(),
             ControlPacket::Ping(tok) => {
                 let data = tok.map_or(EMPTY_STREAM.0.to_vec(), |t| {
-                    vec![TOKEN_STREAM.0.to_vec(), t.0.into_bytes()].concat()
+                    [TOKEN_STREAM.0.to_vec(), t.0.into_bytes()].concat()
                 });
                 [vec![0x05], data].concat()
             }
