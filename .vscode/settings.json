@@ -8,8 +8,10 @@
         "indicatif",
         "libhoney",
         "reqwest",
+        "rusoto",
         "rustls",
         "spki",
+        "thiserror",
         "tunnelto",
         "webpki"
     ]

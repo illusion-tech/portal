@@ -35,17 +35,13 @@ fn client_ip() -> impl Filter<Extract = (IpAddr,), Error = Rejection> + Copy {
         .and(warp::addr::remote())
         .map(
             |client_ip: Option<String>, fwd: Option<String>, remote: Option<SocketAddr>| {
-                let client_ip = client_ip.map(|s| IpAddr::from_str(&s).ok()).flatten();
-                let fwd = fwd
-                    .map(|s| {
-                        s.split(",")
-                            .into_iter()
-                            .next()
-                            .map(IpAddr::from_str)
-                            .map(Result::ok)
-                            .flatten()
-                    })
-                    .flatten();
+                let client_ip = client_ip.and_then(|s| IpAddr::from_str(&s).ok());
+                let fwd = fwd.and_then(|s| {
+                    s.split(',')
+                        .next()
+                        .map(IpAddr::from_str)
+                        .and_then(Result::ok)
+                });
                 let remote = remote.map(|r| r.ip());
                 client_ip
                     .or(fwd)
@@ -113,7 +109,7 @@ async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
                         client_id: client.id.clone(),
                         expires: Utc::now() + chrono::Duration::minutes(2),
                     }
-                    .into_token(&CONFIG.master_sig_key)
+                    .to_token(&CONFIG.master_sig_key)
                     .map_err(|e| error!("unable to create reconnect token: {:?}", e))
                     .ok()
                 } else {

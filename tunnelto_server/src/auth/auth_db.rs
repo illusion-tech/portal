@@ -1,3 +1,5 @@
+use base64::Engine;
+use base64::engine::general_purpose;
 use rusoto_core::{Client, HttpClient, Region};
 use rusoto_dynamodb::{AttributeValue, DynamoDb, DynamoDbClient, GetItemError, GetItemInput};
 
@@ -28,26 +30,26 @@ impl AuthDbService {
 }
 
 mod domain_db {
-    pub const TABLE_NAME: &'static str = "tunnelto_domains";
-    pub const PRIMARY_KEY: &'static str = "subdomain";
-    pub const ACCOUNT_ID: &'static str = "account_id";
+    pub const TABLE_NAME: &str = "tunnelto_domains";
+    pub const PRIMARY_KEY: &str = "subdomain";
+    pub const ACCOUNT_ID: &str = "account_id";
 }
 
 mod key_db {
-    pub const TABLE_NAME: &'static str = "tunnelto_auth";
-    pub const PRIMARY_KEY: &'static str = "auth_key_hash";
-    pub const ACCOUNT_ID: &'static str = "account_id";
+    pub const TABLE_NAME: &str = "tunnelto_auth";
+    pub const PRIMARY_KEY: &str = "auth_key_hash";
+    pub const ACCOUNT_ID: &str = "account_id";
 }
 
 mod record_db {
-    pub const TABLE_NAME: &'static str = "tunnelto_record";
-    pub const PRIMARY_KEY: &'static str = "account_id";
-    pub const SUBSCRIPTION_ID: &'static str = "subscription_id";
+    pub const TABLE_NAME: &str = "tunnelto_record";
+    pub const PRIMARY_KEY: &str = "account_id";
+    pub const SUBSCRIPTION_ID: &str = "subscription_id";
 }
 
 fn key_id(auth_key: &str) -> String {
     let hash = sha2::Sha256::digest(auth_key.as_bytes()).to_vec();
-    base64::encode_config(&hash, base64::URL_SAFE_NO_PAD)
+    general_purpose::URL_SAFE_NO_PAD.encode(hash)
 }
 
 #[derive(Error, Debug)]

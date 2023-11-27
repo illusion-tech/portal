@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 async-trait = "0.1.50"
-base64 = "0.11.0"
+base64 = "0.21.0"
 chrono = "0.4.11"
 dashmap = "4.0.2"
 futures = "0.3"
