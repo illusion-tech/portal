@@ -4,7 +4,6 @@ use super::*;
 
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::StreamExt;
-use hyper::Uri;
 use std::net::SocketAddr;
 use std::vec;
 use uuid::Uuid;
@@ -288,7 +287,7 @@ async fn replay_request(
         return Err(warp::reject::not_found());
     }
 
-    Ok(Box::new(warp::redirect(Uri::from_static("/"))))
+    Ok(Box::new(warp::redirect(warp::http::Uri::from_static("/"))))
 }
 
 struct Page<T>(T);

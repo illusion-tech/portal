@@ -2847,7 +2847,6 @@ dependencies = [
  "http-body 1.0.0",
  "httparse",
  "human-panic",
- "hyper",
  "hyper-rustls",
  "indicatif",
  "lazy_static",
