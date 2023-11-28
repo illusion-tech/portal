@@ -25,12 +25,18 @@ pub struct Connections {
     hosts: Arc<DashMap<String, ConnectedClient>>,
 }
 
-impl Connections {
-    pub fn new() -> Self {
+impl Default for Connections {
+    fn default() -> Self {
         Self {
             clients: Arc::new(DashMap::new()),
             hosts: Arc::new(DashMap::new()),
         }
+    }
+}
+
+impl Connections {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn update_host(client: &ConnectedClient) {
@@ -72,7 +78,7 @@ impl Connections {
     pub fn get(client_id: &ClientId) -> Option<ConnectedClient> {
         CONNECTIONS
             .clients
-            .get(&client_id)
+            .get(client_id)
             .map(|c| c.value().clone())
     }
 

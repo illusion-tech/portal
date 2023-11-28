@@ -4,6 +4,7 @@
         "askama",
         "chrono",
         "dashmap",
+        "hmac",
         "httparse",
         "indicatif",
         "libhoney",

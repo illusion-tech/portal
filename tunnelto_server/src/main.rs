@@ -18,7 +18,6 @@ mod active_stream;
 use self::active_stream::*;
 
 mod auth;
-pub use self::auth::auth_db;
 pub use self::auth::client_auth;
 
 // pub use self::auth_db::AuthDbService;

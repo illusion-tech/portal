@@ -1,7 +1,7 @@
 [package]
 authors = ["Alex Grinman <alex@tunnelto.dev>", "Wang Zishi <wangzishi@illustiontech.cn>"]
 description = "expose your local web server to the internet with a public url"
-edition = "2018"
+edition = "2021"
 license = "MIT"
 name = "tunnelto_server"
 readme = "../README.md"

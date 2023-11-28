@@ -45,12 +45,12 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Config {
         let allowed_hosts = std::env::var("ALLOWED_HOSTS")
-            .map(|s| s.split(",").map(String::from).collect())
-            .unwrap_or(vec![]);
+            .map(|s| s.split(',').map(String::from).collect())
+            .unwrap_or_default();
 
         let blocked_sub_domains = std::env::var("BLOCKED_SUB_DOMAINS")
-            .map(|s| s.split(",").map(String::from).collect())
-            .unwrap_or(vec![]);
+            .map(|s| s.split(',').map(String::from).collect())
+            .unwrap_or_default();
 
         let master_sig_key = if let Ok(key) = std::env::var("MASTER_SIG_KEY") {
             SigKey::from_hex(&key).expect("invalid master key: not hex or length incorrect")
@@ -67,12 +67,12 @@ impl Config {
         let instance_id = std::env::var("FLY_ALLOC_ID").unwrap_or(Uuid::new_v4().to_string());
         let blocked_ips = std::env::var("BLOCKED_IPS")
             .map(|s| {
-                s.split(",")
+                s.split(',')
                     .map(IpAddr::from_str)
                     .filter_map(Result::ok)
                     .collect()
             })
-            .unwrap_or(vec![]);
+            .unwrap_or_default();
 
         let tunnel_host = std::env::var("TUNNEL_HOST").unwrap_or("tunnelto.dev".to_string());
 
