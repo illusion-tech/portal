@@ -1,12 +1,12 @@
 [package]
 authors = ["Alex Grinman <alex@tunnelto.dev>", "Wang Zishi <wangzishi@illustiontech.cn>"]
 description = "expose your local web server to the internet with a public url"
-edition = "2018"
+edition = "2021"
 license = "MIT"
 name = "tunnelto"
 readme = "../README.md"
 repository = "https://github.com/agrinman/tunnelto"
-version = "0.1.19"
+version = "0.1.20"
 
 [[bin]]
 name = "tunnelto"
@@ -39,7 +39,7 @@ tokio = {version = "1.0", features = ["full"]}
 tokio-rustls = "0.24"
 tokio-tungstenite = {version = "0.20", features = ["rustls-tls-webpki-roots"]}
 tungstenite = {version = "0.20", default-features = false, features = ["rustls-tls-webpki-roots"]}
-tunnelto_lib = {version = "0.1.20", path = "../tunnelto_lib"}
+tunnelto_lib = {path = "../tunnelto_lib"}
 uuid = {version = "1.6", features = ["serde", "v4"]}
 warp = "0.3"
 webpki = "0.22"

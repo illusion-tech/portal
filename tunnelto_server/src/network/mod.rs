@@ -14,7 +14,7 @@ use trust_dns_resolver::TokioAsyncResolver;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("IOError: {0}")]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
 
     #[error("RequestError: {0}")]
     Request(#[from] reqwest::Error),
@@ -55,8 +55,8 @@ impl Instance {
 
     /// query the instance and see if it runs our host
     async fn serves_host(self, host: &str) -> Result<(Instance, ClientId), Error> {
-        let addr = SocketAddr::new(self.ip.clone(), crate::CONFIG.internal_network_port);
-        let url = format!("http://{}", addr.to_string());
+        let addr = SocketAddr::new(self.ip, crate::CONFIG.internal_network_port);
+        let url = format!("http://{}", addr);
         let client = reqwest::Client::new();
         let response = client
             .get(url)

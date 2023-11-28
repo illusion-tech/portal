@@ -135,7 +135,7 @@ fn validate_host_prefix(host: &str) -> Option<String> {
         }
     };
 
-    let domain_segments = host.split(".").collect::<Vec<&str>>();
+    let domain_segments = host.split('.').collect::<Vec<&str>>();
     let prefix = &domain_segments[0];
     let remaining = &domain_segments[1..].join(".");
 
@@ -211,7 +211,7 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
     let forwarded_for = if let Some(Ok(forwarded_for)) = req
         .headers
         .iter()
-        .filter(|h| h.name.to_lowercase() == "x-forwarded-for".to_string())
+        .filter(|h| h.name.to_lowercase() == *"x-forwarded-for")
         .map(|h| std::str::from_utf8(h.value))
         .next()
     {
@@ -224,7 +224,7 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
     if let Some(Ok(host)) = req
         .headers
         .iter()
-        .filter(|h| h.name.to_lowercase() == "host".to_string())
+        .filter(|h| h.name.to_lowercase() == *"host")
         .map(|h| std::str::from_utf8(h.value))
         .next()
     {

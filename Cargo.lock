@@ -2251,7 +2251,7 @@ dependencies = [
 
 [[package]]
 name = "tunnelto"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "askama",
  "bytes",
@@ -2299,7 +2299,7 @@ dependencies = [
 
 [[package]]
 name = "tunnelto_server"
-version = "0.1.10"
+version = "0.1.20"
 dependencies = [
  "async-trait",
  "base64",
