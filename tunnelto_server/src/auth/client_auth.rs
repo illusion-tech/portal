@@ -103,32 +103,30 @@ async fn auth_client(
     tracing::info!(requested_sub_domain=%requested_sub_domain, "will auth sub domain");
 
     // next authenticate the sub-domain
-    let sub_domain = match crate::AUTH_DB_SERVICE
-        .auth_sub_domain(&auth_key.0, &requested_sub_domain)
-        .await
-    {
-        Ok(AuthResult::Available) | Ok(AuthResult::ReservedByYou) => requested_sub_domain,
-        Ok(AuthResult::ReservedByYouButDelinquent) | Ok(AuthResult::PaymentRequired) => {
-            // note: delinquent payments get a random suffix
-            // ServerHello::prefixed_random_domain(&requested_sub_domain)
-            // TODO: create free trial domain
-            tracing::info!(requested_sub_domain=%requested_sub_domain, "payment required");
-            let data = serde_json::to_vec(&ServerHello::AuthFailed).unwrap_or_default();
-            let _ = websocket.send(Message::binary(data)).await;
-            return None;
-        }
-        Ok(AuthResult::ReservedByOther) => {
-            let data = serde_json::to_vec(&ServerHello::SubDomainInUse).unwrap_or_default();
-            let _ = websocket.send(Message::binary(data)).await;
-            return None;
-        }
-        Err(error) => {
-            error!(?error, "error auth-ing user");
-            let data = serde_json::to_vec(&ServerHello::AuthFailed).unwrap_or_default();
-            let _ = websocket.send(Message::binary(data)).await;
-            return None;
-        }
-    };
+    let sub_domain =
+        match crate::AUTH_DB_SERVICE.auth_sub_domain(&auth_key.0, &requested_sub_domain) {
+            Ok(AuthResult::Available) | Ok(AuthResult::ReservedByYou) => requested_sub_domain,
+            Ok(AuthResult::ReservedByYouButDelinquent) | Ok(AuthResult::PaymentRequired) => {
+                // note: delinquent payments get a random suffix
+                // ServerHello::prefixed_random_domain(&requested_sub_domain)
+                // TODO: create free trial domain
+                tracing::info!(requested_sub_domain=%requested_sub_domain, "payment required");
+                let data = serde_json::to_vec(&ServerHello::AuthFailed).unwrap_or_default();
+                let _ = websocket.send(Message::binary(data)).await;
+                return None;
+            }
+            Ok(AuthResult::ReservedByOther) => {
+                let data = serde_json::to_vec(&ServerHello::SubDomainInUse).unwrap_or_default();
+                let _ = websocket.send(Message::binary(data)).await;
+                return None;
+            }
+            Err(error) => {
+                error!(?error, "error auth-ing user");
+                let data = serde_json::to_vec(&ServerHello::AuthFailed).unwrap_or_default();
+                let _ = websocket.send(Message::binary(data)).await;
+                return None;
+            }
+        };
 
     tracing::info!(subdomain=%sub_domain, "did auth sub_domain");
 

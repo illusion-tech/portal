@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
@@ -50,13 +49,12 @@ impl SigKey {
 }
 
 /// Define the required behavior of an Authentication Service
-#[async_trait]
 pub trait AuthService {
     type Error;
     type AuthKey;
 
     /// Authenticate a subdomain with an AuthKey
-    async fn auth_sub_domain(
+    fn auth_sub_domain(
         &self,
         auth_key: &Self::AuthKey,
         subdomain: &str,
@@ -64,6 +62,7 @@ pub trait AuthService {
 }
 
 /// A result for authenticating a subdomain
+#[allow(dead_code)]
 pub enum AuthResult {
     ReservedByYou,
     ReservedByOther,
@@ -75,13 +74,12 @@ pub enum AuthResult {
 #[derive(Debug, Clone, Copy)]
 pub struct NoAuth;
 
-#[async_trait]
 impl AuthService for NoAuth {
     type Error = ();
-    type AuthKey = ();
+    type AuthKey = String;
 
     /// Authenticate a subdomain with an AuthKey
-    async fn auth_sub_domain(
+    fn auth_sub_domain(
         &self,
         _auth_key: &Self::AuthKey,
         _subdomain: &str,

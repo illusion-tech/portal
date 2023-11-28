@@ -9,6 +9,7 @@
         "libhoney",
         "reqwest",
         "rusoto",
+        "rusqlite",
         "rustls",
         "spki",
         "thiserror",

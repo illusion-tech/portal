@@ -147,17 +147,17 @@ fn validate_host_prefix(host: &str) -> Option<String> {
 }
 
 /// Response Constants
-const HTTP_REDIRECT_RESPONSE:&'static [u8] = b"HTTP/1.1 301 Moved Permanently\r\nLocation: https://tunnelto.dev/\r\nContent-Length: 20\r\n\r\nhttps://tunnelto.dev";
-const HTTP_INVALID_HOST_RESPONSE: &'static [u8] =
+const HTTP_REDIRECT_RESPONSE:&[u8] = b"HTTP/1.1 301 Moved Permanently\r\nLocation: https://tunnelto.dev/\r\nContent-Length: 20\r\n\r\nhttps://tunnelto.dev";
+const HTTP_INVALID_HOST_RESPONSE: &[u8] =
     b"HTTP/1.1 400\r\nContent-Length: 23\r\n\r\nError: Invalid Hostname";
-const HTTP_NOT_FOUND_RESPONSE: &'static [u8] =
+const HTTP_NOT_FOUND_RESPONSE: &[u8] =
     b"HTTP/1.1 404\r\nContent-Length: 23\r\n\r\nError: Tunnel Not Found";
-const HTTP_ERROR_LOCATING_HOST_RESPONSE: &'static [u8] =
+const HTTP_ERROR_LOCATING_HOST_RESPONSE: &[u8] =
     b"HTTP/1.1 500\r\nContent-Length: 27\r\n\r\nError: Error finding tunnel";
-const HTTP_TUNNEL_REFUSED_RESPONSE: &'static [u8] =
+const HTTP_TUNNEL_REFUSED_RESPONSE: &[u8] =
     b"HTTP/1.1 500\r\nContent-Length: 32\r\n\r\nTunnel says: connection refused.";
-const HTTP_OK_RESPONSE: &'static [u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
-const HEALTH_CHECK_PATH: &'static [u8] = b"/0xDEADBEEF_HEALTH_CHECK";
+const HTTP_OK_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+const HEALTH_CHECK_PATH: &[u8] = b"/0xDEADBEEF_HEALTH_CHECK";
 
 struct StreamWithPeekedHost {
     socket: TcpStream,
