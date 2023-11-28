@@ -7,9 +7,9 @@ const HOST_ENV: &str = "CTRL_HOST";
 const PORT_ENV: &str = "CTRL_PORT";
 const TLS_OFF_ENV: &str = "CTRL_TLS_OFF";
 
-const DEFAULT_HOST: &str = "tunnelto.dev";
-const DEFAULT_CONTROL_HOST: &str = "wormhole.tunnelto.dev";
-const DEFAULT_CONTROL_PORT: &str = "10001";
+const DEFAULT_HOST: &str = "localhost";
+const DEFAULT_CONTROL_HOST: &str = "localhost";
+const DEFAULT_CONTROL_PORT: &str = "5000";
 
 const SETTINGS_DIR: &str = ".tunnelto";
 const SECRET_KEY_FILE: &str = "key.token";

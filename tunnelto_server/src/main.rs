@@ -67,6 +67,7 @@ async fn main() {
 
     let listen_addr = format!("[::]:{}", CONFIG.remote_port);
     info!("listening on: {}", &listen_addr);
+    info!("tunnelto server with hostname: {}", &CONFIG.tunnel_host);
 
     // create our accept any server
     let listener = TcpListener::bind(listen_addr)
