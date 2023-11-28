@@ -33,7 +33,6 @@ mod network;
 mod observability;
 
 use tracing::level_filters::LevelFilter;
-use tracing_honeycomb::libhoney;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::registry;
 
@@ -53,39 +52,10 @@ lazy_static! {
 #[tokio::main]
 async fn main() {
     // setup observability
-    if let Some(api_key) = CONFIG.honeycomb_api_key.clone() {
-        info!("configuring observability layer");
-
-        let honeycomb_config = libhoney::Config {
-            options: libhoney::client::Options {
-                api_key,
-                dataset: "t2-service".to_string(),
-                ..libhoney::client::Options::default()
-            },
-            transmission_options: libhoney::transmission::Options {
-                max_batch_size: 50,
-                max_concurrent_batches: 10,
-                batch_timeout: std::time::Duration::from_millis(1000),
-                pending_work_capacity: 5_000,
-                user_agent_addition: None,
-            },
-        };
-
-        let telemetry_layer =
-            tracing_honeycomb::new_honeycomb_telemetry_layer("t2-service", honeycomb_config);
-
-        let subscriber = registry::Registry::default()
-            .with(LevelFilter::INFO)
-            .with(tracing_subscriber::fmt::Layer::default())
-            .with(telemetry_layer);
-
-        tracing::subscriber::set_global_default(subscriber).expect("setting global default failed");
-    } else {
-        let subscriber = registry::Registry::default()
-            .with(LevelFilter::INFO)
-            .with(tracing_subscriber::fmt::Layer::default());
-        tracing::subscriber::set_global_default(subscriber).expect("setting global default failed");
-    };
+    let subscriber = registry::Registry::default()
+        .with(LevelFilter::INFO)
+        .with(tracing_subscriber::fmt::Layer::default());
+    tracing::subscriber::set_global_default(subscriber).expect("setting global default failed");
 
     tracing::info!("starting server!");
 
