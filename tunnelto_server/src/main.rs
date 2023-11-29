@@ -40,7 +40,7 @@ use tracing::{error, info, Instrument};
 lazy_static! {
     pub static ref CONNECTIONS: Connections = Connections::new();
     pub static ref ACTIVE_STREAMS: ActiveStreams = Arc::new(DashMap::new());
-    pub static ref CONFIG: Config = Config::from_env();
+    pub static ref CONFIG: Config = Config::load_from_env();
 
     // To disable all authentication:
     pub static ref AUTH_DB_SERVICE: crate::auth::NoAuth = crate::auth::NoAuth;
@@ -50,7 +50,7 @@ lazy_static! {
 async fn main() {
     // setup observability
     let subscriber = registry::Registry::default()
-        .with(LevelFilter::INFO)
+        .with(LevelFilter::DEBUG)
         .with(tracing_subscriber::fmt::Layer::default());
     tracing::subscriber::set_global_default(subscriber).expect("setting global default failed");
 

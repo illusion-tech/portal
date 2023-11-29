@@ -1,0 +1,6 @@
+allowed_hosts = [
+  'localhost',
+  'illusiontech.cn',
+]
+
+tunnel_host = 'localhost'

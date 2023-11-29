@@ -6,7 +6,7 @@ use std::fmt::Formatter;
 pub mod client_auth;
 pub mod reconnect_token;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SigKey([u8; 32]);
 
 impl std::fmt::Debug for SigKey {

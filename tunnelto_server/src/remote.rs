@@ -5,6 +5,19 @@ use tokio::net::TcpStream;
 use tracing::debug;
 use tracing::{error, Instrument};
 
+/// Response Constants
+const HTTP_REDIRECT_RESPONSE:&[u8] = b"HTTP/1.1 301 Moved Permanently\r\nLocation: https://tunnelto.dev/\r\nContent-Length: 20\r\n\r\nhttps://tunnelto.dev";
+const HTTP_INVALID_HOST_RESPONSE: &[u8] =
+    b"HTTP/1.1 400\r\nContent-Length: 23\r\n\r\nError: Invalid Hostname";
+const HTTP_NOT_FOUND_RESPONSE: &[u8] =
+    b"HTTP/1.1 404\r\nContent-Length: 23\r\n\r\nError: Tunnel Not Found";
+const HTTP_ERROR_LOCATING_HOST_RESPONSE: &[u8] =
+    b"HTTP/1.1 500\r\nContent-Length: 27\r\n\r\nError: Error finding tunnel";
+const HTTP_TUNNEL_REFUSED_RESPONSE: &[u8] =
+    b"HTTP/1.1 500\r\nContent-Length: 32\r\n\r\nTunnel says: connection refused.";
+const HTTP_OK_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+const HEALTH_CHECK_PATH: &[u8] = b"/0xDEADBEEF_HEALTH_CHECK";
+
 async fn direct_to_control(mut incoming: TcpStream) {
     let mut control_socket =
         match TcpStream::connect(format!("localhost:{}", CONFIG.control_port)).await {
@@ -43,6 +56,7 @@ pub async fn accept_connection(socket: TcpStream) {
     };
 
     tracing::info!(%host, %forwarded_for, "new remote connection");
+    tracing::debug!("Allowed hosts: {}", CONFIG.allowed_hosts.join(", "));
 
     // parse the host string and find our client
     if CONFIG.allowed_hosts.contains(&host) {
@@ -123,6 +137,7 @@ pub async fn accept_connection(socket: TcpStream) {
 
 fn validate_host_prefix(host: &str) -> Option<String> {
     let url = format!("http://{}", host);
+    debug!(%url, "parsing host");
 
     let host = match url::Url::parse(&url)
         .map(|u| u.host().map(|h| h.to_owned()))
@@ -139,25 +154,16 @@ fn validate_host_prefix(host: &str) -> Option<String> {
     let prefix = &domain_segments[0];
     let remaining = &domain_segments[1..].join(".");
 
+    debug!(%host, %prefix, "parsed host");
+    debug!(%prefix, %remaining, "parsed host");
+    debug!(?CONFIG.allowed_hosts, "allowed hosts");
+
     if CONFIG.allowed_hosts.contains(remaining) {
         Some(prefix.to_string())
     } else {
         None
     }
 }
-
-/// Response Constants
-const HTTP_REDIRECT_RESPONSE:&[u8] = b"HTTP/1.1 301 Moved Permanently\r\nLocation: https://tunnelto.dev/\r\nContent-Length: 20\r\n\r\nhttps://tunnelto.dev";
-const HTTP_INVALID_HOST_RESPONSE: &[u8] =
-    b"HTTP/1.1 400\r\nContent-Length: 23\r\n\r\nError: Invalid Hostname";
-const HTTP_NOT_FOUND_RESPONSE: &[u8] =
-    b"HTTP/1.1 404\r\nContent-Length: 23\r\n\r\nError: Tunnel Not Found";
-const HTTP_ERROR_LOCATING_HOST_RESPONSE: &[u8] =
-    b"HTTP/1.1 500\r\nContent-Length: 27\r\n\r\nError: Error finding tunnel";
-const HTTP_TUNNEL_REFUSED_RESPONSE: &[u8] =
-    b"HTTP/1.1 500\r\nContent-Length: 32\r\n\r\nTunnel says: connection refused.";
-const HTTP_OK_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
-const HEALTH_CHECK_PATH: &[u8] = b"/0xDEADBEEF_HEALTH_CHECK";
 
 struct StreamWithPeekedHost {
     socket: TcpStream,
