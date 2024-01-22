@@ -4,7 +4,7 @@ use warp::Filter;
 
 use dashmap::DashMap;
 use std::sync::Arc;
-pub use tunnelto_lib::*;
+pub use portal_lib::*;
 
 use tokio::net::TcpListener;
 
@@ -69,7 +69,7 @@ async fn main() {
     tracing::info!("starting server!");
 
     control_server::spawn(([0, 0, 0, 0], CONFIG.control_port));
-    info!("started tunnelto server on 0.0.0.0:{}", CONFIG.control_port);
+    info!("started portal server on 0.0.0.0:{}", CONFIG.control_port);
 
     network::spawn(([0, 0, 0, 0, 0, 0, 0, 0], CONFIG.internal_network_port));
     info!(
@@ -79,7 +79,7 @@ async fn main() {
 
     let listen_addr = format!("[::]:{}", CONFIG.remote_port);
     info!("listening on: {}", &listen_addr);
-    info!("tunnelto server with hostname: {}", &CONFIG.tunnel_host);
+    info!("portal server with hostname: {}", &CONFIG.portal_host);
 
     // create our accept any server
     let listener = TcpListener::bind(listen_addr)

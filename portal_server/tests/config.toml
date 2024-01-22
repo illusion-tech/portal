@@ -3,4 +3,4 @@ allowed_hosts = [
   'illusiontech.cn',
 ]
 
-tunnel_host = 'localhost'
+portal_host = 'localhost'

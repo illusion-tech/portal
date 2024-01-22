@@ -7,16 +7,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'tunnelto_lib'",
+            "name": "Debug unit tests in library 'portal_lib'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=tunnelto_lib"
+                    "--package=portal_lib"
                 ],
                 "filter": {
-                    "name": "tunnelto_lib",
+                    "name": "portal_lib",
                     "kind": "lib"
                 }
             },
@@ -26,15 +26,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'tunnelto'",
+            "name": "Debug executable 'portal'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=tunnelto",
-                    "--package=tunnelto"
+                    "--bin=portal",
+                    "--package=portal"
                 ],
                 "filter": {
-                    "name": "tunnelto",
+                    "name": "portal",
                     "kind": "bin"
                 }
             },
@@ -44,16 +44,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'tunnelto'",
+            "name": "Debug unit tests in executable 'portal'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=tunnelto",
-                    "--package=tunnelto"
+                    "--bin=portal",
+                    "--package=portal"
                 ],
                 "filter": {
-                    "name": "tunnelto",
+                    "name": "portal",
                     "kind": "bin"
                 }
             },
@@ -63,15 +63,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'tunnelto_server'",
+            "name": "Debug executable 'portal_server'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=tunnelto_server",
-                    "--package=tunnelto_server"
+                    "--bin=portal_server",
+                    "--package=portal_server"
                 ],
                 "filter": {
-                    "name": "tunnelto_server",
+                    "name": "portal_server",
                     "kind": "bin"
                 }
             },
@@ -86,11 +86,11 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=tunnelto_server",
-                    "--package=tunnelto_server"
+                    "--bin=portal_server",
+                    "--package=portal_server"
                 ],
                 "filter": {
-                    "name": "tunnelto_server",
+                    "name": "portal_server",
                     "kind": "bin"
                 }
             },

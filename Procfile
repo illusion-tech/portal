@@ -1,1 +1,1 @@
-web: ./target/release/tunnelto_server
+web: ./target/release/portal_server

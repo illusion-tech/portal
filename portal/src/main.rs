@@ -22,7 +22,7 @@ mod update;
 pub use self::error::*;
 
 pub use config::*;
-pub use tunnelto_lib::*;
+pub use portal_lib::*;
 
 use crate::cli_ui::CliInterface;
 use colored::Colorize;

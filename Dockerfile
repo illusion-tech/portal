@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-COPY ./target/x86_64-unknown-linux-musl/release/tunnelto_server /tunnelto_server
+COPY ./target/x86_64-unknown-linux-musl/release/portal_server /portal_server
 
 # client svc
 EXPOSE 8080
@@ -9,4 +9,4 @@ EXPOSE 5000
 # net svc
 EXPOSE 10002
 
-ENTRYPOINT ["/tunnelto_server"]
+ENTRYPOINT ["/portal_server"]

@@ -3,7 +3,7 @@ use crate::auth::{AuthResult, AuthService};
 use crate::{ReconnectToken, CONFIG};
 use futures::{SinkExt, StreamExt};
 use tracing::error;
-use tunnelto_lib::{ClientHello, ClientId, ClientType, ServerHello};
+use portal_lib::{ClientHello, ClientId, ClientType, ServerHello};
 use warp::filters::ws::{Message, WebSocket};
 
 pub struct ClientHandshake {

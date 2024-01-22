@@ -29,7 +29,7 @@
 			"type": "cargo",
 			"command": "run",
 			"args": [
-				"--bin tunnelto"
+				"--bin portal"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -40,7 +40,7 @@
 			"type": "cargo",
 			"command": "run",
 			"args": [
-				"--bin tunnelto_server"
+				"--bin portal_server"
 			],
 			"env": {},
 			"problemMatcher": [

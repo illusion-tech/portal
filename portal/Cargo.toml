@@ -3,13 +3,13 @@ authors = ["Alex Grinman <alex@tunnelto.dev>", "Wang Zishi <wangzishi@illustiont
 description = "expose your local web server to the internet with a public url"
 edition = "2021"
 license = "MIT"
-name = "tunnelto"
+name = "portal"
 readme = "../README.md"
-repository = "https://github.com/agrinman/tunnelto"
+repository = "https://github.com/illusion-tech/portal"
 version = "0.1.20"
 
 [[bin]]
-name = "tunnelto"
+name = "portal"
 path = "src/main.rs"
 
 [dependencies]
@@ -39,7 +39,7 @@ tokio = {version = "1.0", features = ["full"]}
 tokio-rustls = "0.24"
 tokio-tungstenite = {version = "0.20", features = ["rustls-tls-webpki-roots"]}
 tungstenite = {version = "0.20", default-features = false, features = ["rustls-tls-webpki-roots"]}
-tunnelto_lib = {path = "../tunnelto_lib"}
+portal_lib = {path = "../portal_lib"}
 uuid = {version = "1.6", features = ["serde", "v4"]}
 warp = "0.3"
 webpki = "0.22"

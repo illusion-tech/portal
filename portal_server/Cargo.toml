@@ -3,17 +3,17 @@ authors = ["Alex Grinman <alex@tunnelto.dev>", "Wang Zishi <wangzishi@illustiont
 description = "expose your local web server to the internet with a public url"
 edition = "2021"
 license = "MIT"
-name = "tunnelto_server"
+name = "portal_server"
 readme = "../README.md"
-repository = "https://tunnelto.dev"
+repository = "https://github.com/illusion-tech/portal"
 version = "0.1.20"
 
 [[bin]]
-name = "tunnelto_server"
+name = "portal_server"
 path = "src/main.rs"
 
 [dependencies]
-tunnelto_lib = {path = "../tunnelto_lib"}
+portal_lib = {path = "../portal_lib"}
 
 async-trait = "0.1.50"
 base64 = "0.21.0"

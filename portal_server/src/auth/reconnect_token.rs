@@ -3,7 +3,7 @@ use base64::{engine::general_purpose, Engine};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tunnelto_lib::{ClientId, ReconnectToken};
+use portal_lib::{ClientId, ReconnectToken};
 
 #[derive(Error, Debug)]
 pub enum Error {

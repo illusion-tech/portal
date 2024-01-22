@@ -11,14 +11,14 @@ const DEFAULT_HOST: &str = "localhost";
 const DEFAULT_CONTROL_HOST: &str = "localhost";
 const DEFAULT_CONTROL_PORT: &str = "5000";
 
-const SETTINGS_DIR: &str = ".tunnelto";
+const SETTINGS_DIR: &str = ".portal";
 const SECRET_KEY_FILE: &str = "key.token";
 
 /// Command line arguments
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "tunnelto",
-    author = "support@tunnelto.dev",
+    name = "portal",
+    author = "wangzishi@illusiontech.cn",
     about = "Expose your local web server to the internet with a public url."
 )]
 struct Opts {
@@ -89,7 +89,7 @@ impl Config {
         let opts: Opts = Opts::from_args();
 
         if opts.verbose {
-            std::env::set_var("RUST_LOG", "tunnelto=debug");
+            std::env::set_var("RUST_LOG", "portal=debug");
         }
 
         pretty_env_logger::init();

@@ -32,14 +32,14 @@ jobs:
 
       - uses: actions/checkout@v2
       - name: Build Client
-        run: cargo build --release --bin tunnelto --verbose
+        run: cargo build --release --bin portal --verbose
       - name: Compress
-        run: tar -czvf tunnelto-${{ matrix.os }}.tar.gz target/release/tunnelto
+        run: tar -czvf portal-${{ matrix.os }}.tar.gz target/release/portal
       - name: Upload Client Binary
         uses: actions/upload-artifact@v1
         with:
-          name: tunnelto-${{ matrix.os }}
-          path: target/release/tunnelto
+          name: portal-${{ matrix.os }}
+          path: target/release/portal
 
   build_win:
     runs-on: windows-latest
@@ -62,12 +62,12 @@ jobs:
 
       - uses: actions/checkout@v2
       - name: Build Client
-        run: cargo build --release --bin tunnelto --verbose
+        run: cargo build --release --bin portal --verbose
       - name: Upload Client Binary
         uses: actions/upload-artifact@v1
         with:
-          name: tunnelto-windows-latest.exe
-          path: target/release/tunnelto.exe
+          name: portal-windows-latest.exe
+          path: target/release/portal.exe
 
   publish:
     needs: [build, build_win]
@@ -80,34 +80,34 @@ jobs:
       - name: Download macOS
         uses: actions/download-artifact@v1
         with:
-          name: tunnelto-macOS-latest
-          path: macOS/tunnelto/${{ steps.get_version.outputs.VERSION }}/bin/
+          name: portal-macOS-latest
+          path: macOS/portal/${{ steps.get_version.outputs.VERSION }}/bin/
 
       - name: Download ubuntu
         uses: actions/download-artifact@v1
         with:
-          name: tunnelto-ubuntu-latest
+          name: portal-ubuntu-latest
           path: linux/
 
       - name: Download windows
         uses: actions/download-artifact@v1
         with:
-          name: tunnelto-windows-latest.exe
+          name: portal-windows-latest.exe
           path: windows/
 
       - name: Compress
         run: |
-          chmod +x macOS/tunnelto/${{ steps.get_version.outputs.VERSION }}/bin/tunnelto
-          chmod +x linux/tunnelto
+          chmod +x macOS/portal/${{ steps.get_version.outputs.VERSION }}/bin/portal
+          chmod +x linux/portal
           export TAG="${{ steps.get_version.outputs.VERSION }}"
-          cp windows/tunnelto.exe tunnelto-windows.exe
-          tar -C macOS/ -czvf "tunnelto-$TAG.catalina.bottle.tar.gz" tunnelto/${{ steps.get_version.outputs.VERSION }}/bin/tunnelto
-          cp "tunnelto-$TAG.catalina.bottle.tar.gz" "tunnelto-$TAG.big_sur.bottle.tar.gz"
-          tar -C linux/ -czvf tunnelto-linux.tar.gz tunnelto
+          cp windows/portal.exe portal-windows.exe
+          tar -C macOS/ -czvf "portal-$TAG.catalina.bottle.tar.gz" portal/${{ steps.get_version.outputs.VERSION }}/bin/portal
+          cp "portal-$TAG.catalina.bottle.tar.gz" "portal-$TAG.big_sur.bottle.tar.gz"
+          tar -C linux/ -czvf portal-linux.tar.gz portal
 
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "tunnelto-${{ steps.get_version.outputs.VERSION }}.big_sur.bottle.tar.gz,tunnelto-${{ steps.get_version.outputs.VERSION }}.catalina.bottle.tar.gz,tunnelto-linux.tar.gz,tunnelto-windows.exe"
+          artifacts: "portal-${{ steps.get_version.outputs.VERSION }}.big_sur.bottle.tar.gz,portal-${{ steps.get_version.outputs.VERSION }}.catalina.bottle.tar.gz,portal-linux.tar.gz,portal-windows.exe"
           token: ${{ secrets.GITHUB_TOKEN }}

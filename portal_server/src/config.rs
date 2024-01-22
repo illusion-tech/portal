@@ -43,7 +43,7 @@ struct InternalConfig {
     blocked_ips: Option<Vec<IpAddr>>,
 
     /// The host on which we create tunnels on
-    tunnel_host: Option<String>,
+    portal_host: Option<String>,
 }
 
 /// Global service configuration
@@ -83,7 +83,7 @@ pub struct Config {
     pub blocked_ips: Vec<IpAddr>,
 
     /// The host on which we create tunnels on
-    pub tunnel_host: String,
+    pub portal_host: String,
 }
 
 impl From<InternalConfig> for Config {
@@ -105,8 +105,8 @@ impl From<InternalConfig> for Config {
             .instance_id
             .unwrap_or_else(|| Uuid::new_v4().to_string());
         let blocked_ips = config.blocked_ips.unwrap_or_default();
-        let tunnel_host = config
-            .tunnel_host
+        let portal_host = config
+            .portal_host
             .unwrap_or_else(|| "tunnelto.dev".to_string());
 
         Config {
@@ -120,7 +120,7 @@ impl From<InternalConfig> for Config {
             honeycomb_api_key,
             instance_id,
             blocked_ips,
-            tunnel_host,
+            portal_host,
         }
     }
 }
@@ -164,7 +164,7 @@ impl Config {
             })
             .unwrap_or_default();
 
-        let tunnel_host = std::env::var("TUNNEL_HOST").unwrap_or("tunnelto.dev".to_string());
+        let portal_host = std::env::var("PORTAL_HOST").unwrap_or("portalto.dev".to_string());
 
         Config {
             allowed_hosts,
@@ -177,7 +177,7 @@ impl Config {
             honeycomb_api_key,
             instance_id,
             blocked_ips,
-            tunnel_host,
+            portal_host,
         }
     }
 }

@@ -3,9 +3,9 @@ authors = ["Alex Grinman <alex@tunnelto.dev>", "Wang Zishi <wangzishi@illustiont
 description = "expose your local web server to the internet with a public url"
 edition = "2021"
 license = "MIT"
-name = "tunnelto_lib"
+name = "portal_lib"
 readme = "../README.md"
-repository = "https://github.com/agrinman/tunnelto"
+repository = "https://github.com/illusion-tech/portal"
 version = "0.1.20"
 
 [dependencies]
