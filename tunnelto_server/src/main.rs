@@ -31,6 +31,9 @@ mod network;
 
 mod observability;
 
+mod cli;
+use clap::Parser;
+
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::registry;
@@ -38,9 +41,14 @@ use tracing_subscriber::registry;
 use tracing::{error, info, Instrument};
 
 lazy_static! {
+    pub static ref CLI: cli::Cli = cli::Cli::parse();
+
     pub static ref CONNECTIONS: Connections = Connections::new();
     pub static ref ACTIVE_STREAMS: ActiveStreams = Arc::new(DashMap::new());
-    pub static ref CONFIG: Config = Config::load_from_env();
+    pub static ref CONFIG: Config = match CLI.config {
+        Some(ref config_path) => Config::load_from_file(config_path.to_str().unwrap()).unwrap(),
+        None => Config::load_from_env()
+    };
 
     // To disable all authentication:
     pub static ref AUTH_DB_SERVICE: crate::auth::NoAuth = crate::auth::NoAuth;
@@ -48,6 +56,10 @@ lazy_static! {
 
 #[tokio::main]
 async fn main() {
+    // if let Some(config_path) = &CLI.config {
+    //     println!("Value for config: {}", config_path.display());
+    // };
+
     // setup observability
     let subscriber = registry::Registry::default()
         .with(LevelFilter::DEBUG)
