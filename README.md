@@ -1,7 +1,6 @@
 <p align="center" >
-<img width="540px" src="https://repository-images.githubusercontent.com/249120770/7ea6d180-b4ba-11ea-96ab-6c3b987aac9d" align="center"/>
+<img width="540px" src="./public/logo.png" align="center"/>
 </p>
-
 
 # `portal`
 `portal` lets you expose your locally running web server via a public URL.
