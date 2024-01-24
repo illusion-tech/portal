@@ -1,7 +1,6 @@
-use std::net::{SocketAddr, ToSocketAddrs};
-
 use super::*;
-use structopt::StructOpt;
+// use std::error::Error;
+use std::net::{SocketAddr, ToSocketAddrs};
 
 const HOST_ENV: &str = "CTRL_HOST";
 const PORT_ENV: &str = "CTRL_PORT";
@@ -13,56 +12,6 @@ const DEFAULT_CONTROL_PORT: &str = "5000";
 
 const SETTINGS_DIR: &str = ".portal";
 const SECRET_KEY_FILE: &str = "key.token";
-
-/// Command line arguments
-#[derive(Debug, StructOpt)]
-#[structopt(
-    name = "portal",
-    author = "wangzishi@illusiontech.cn",
-    about = "Expose your local web server to the internet with a public url."
-)]
-struct Opts {
-    /// A level of verbosity, and can be used multiple times
-    #[structopt(short = "v", long = "verbose")]
-    verbose: bool,
-
-    #[structopt(subcommand)]
-    command: Option<SubCommand>,
-
-    /// Sets an API authentication key to use for this tunnel
-    #[structopt(short = "k", long = "key")]
-    key: Option<String>,
-
-    /// Specify a sub-domain for this tunnel
-    #[structopt(short = "s", long = "subdomain")]
-    sub_domain: Option<String>,
-
-    /// Sets the HOST (i.e. localhost) to forward incoming tunnel traffic to
-    #[structopt(long = "host", default_value = "localhost")]
-    local_host: String,
-
-    /// Sets the protocol for local forwarding (i.e. https://localhost) to forward incoming tunnel traffic to
-    #[structopt(long = "use-tls", short = "t")]
-    use_tls: bool,
-
-    /// Sets the port to forward incoming tunnel traffic to on the target host
-    #[structopt(short = "p", long = "port", default_value = "8000")]
-    port: u16,
-
-    /// Sets the address of the local introspection dashboard
-    #[structopt(long = "dashboard-port")]
-    dashboard_port: Option<u16>,
-}
-
-#[derive(Debug, StructOpt)]
-enum SubCommand {
-    /// Store the API Authentication key
-    SetAuth {
-        /// Sets an API authentication key on disk for future use
-        #[structopt(short = "k", long = "key")]
-        key: String,
-    },
-}
 
 /// Config
 #[derive(Debug, Clone)]
@@ -77,81 +26,39 @@ pub struct Config {
     pub sub_domain: Option<String>,
     pub secret_key: Option<SecretKey>,
     pub control_tls_off: bool,
-    pub first_run: bool,
     pub dashboard_port: u16,
     pub verbose: bool,
 }
 
 impl Config {
     /// Parse the URL to use to connect to the wormhole control server
-    pub fn get() -> Result<Config, ()> {
-        // parse the opts
-        let opts: Opts = Opts::from_args();
-
-        if opts.verbose {
+    pub fn load() -> Result<Config, ()> {
+        if CLI.verbose {
             std::env::set_var("RUST_LOG", "portal=debug");
         }
 
         pretty_env_logger::init();
 
-        let (secret_key, sub_domain) = match opts.command {
-            Some(SubCommand::SetAuth { key }) => {
-                let key = opts.key.unwrap_or(key);
-                let settings_dir = match dirs::home_dir().map(|h| h.join(SETTINGS_DIR)) {
-                    Some(path) => path,
-                    None => {
-                        panic!("Could not find home directory to store token.")
-                    }
-                };
-                std::fs::create_dir_all(&settings_dir)
-                    .expect("Fail to create file in home directory");
-                std::fs::write(settings_dir.join(SECRET_KEY_FILE), key)
-                    .expect("Failed to save authentication key file.");
+        let secret_key: Option<String> = None;
+        let sub_domain = CLI.sub_domain.clone();
 
-                eprintln!("Authentication key stored successfully!");
-                std::process::exit(0);
-            }
-            None => {
-                let key = opts.key;
-                let sub_domain = opts.sub_domain;
-                (
-                    match key {
-                        Some(key) => Some(key),
-                        None => dirs::home_dir()
-                            .map(|h| h.join(SETTINGS_DIR).join(SECRET_KEY_FILE))
-                            .map(|path| {
-                                if path.exists() {
-                                    std::fs::read_to_string(path)
-                                        .map_err(|e| {
-                                            error!("Error reading authentication token: {:?}", e)
-                                        })
-                                        .ok()
-                                } else {
-                                    None
-                                }
-                            })
-                            .unwrap_or(None),
-                    },
-                    sub_domain,
-                )
-            }
-        };
-
-        let local_addr = match (opts.local_host.as_str(), opts.port)
+        let local_addr = (CLI.local_host.as_str(), CLI.port)
             .to_socket_addrs()
-            .unwrap_or(vec![].into_iter())
-            .next()
-        {
-            Some(addr) => addr,
-            None => {
+            .map_err(|_| {
                 error!(
-                    "An invalid local address was specified: {}:{}",
-                    opts.local_host.as_str(),
-                    opts.port
-                );
-                return Err(());
-            }
-        };
+                    "Failed to resolve local address: {}:{}",
+                    CLI.local_host.as_str(),
+                    CLI.port
+                )
+            })?
+            .next()
+            .ok_or_else(|| {
+                error!(
+                    "No IP addresses found for: {}:{}",
+                    CLI.local_host.as_str(),
+                    CLI.port
+                )
+            })?;
 
         // get the host url
         let tls_off = env::var(TLS_OFF_ENV).is_ok();
@@ -168,18 +75,17 @@ impl Config {
 
         Ok(Config {
             client_id: ClientId::generate(),
-            local_host: opts.local_host,
-            use_tls: opts.use_tls,
+            local_host: CLI.local_host.clone(),
+            use_tls: CLI.use_tls,
             control_url,
             host,
-            local_port: opts.port,
+            local_port: CLI.port,
             local_addr,
             sub_domain,
-            dashboard_port: opts.dashboard_port.unwrap_or(0),
-            verbose: opts.verbose,
+            dashboard_port: CLI.dashboard_port.unwrap_or(0),
+            verbose: CLI.verbose,
             secret_key: secret_key.map(SecretKey),
             control_tls_off: tls_off,
-            first_run: true,
         })
     }
 

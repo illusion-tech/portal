@@ -6,6 +6,7 @@
         "dashmap",
         "hmac",
         "httparse",
+        "illusiontech",
         "indicatif",
         "libhoney",
         "reqwest",

@@ -1,7 +1,7 @@
 use core::time::Duration;
 use std::net::SocketAddr;
 
-use crate::Config;
+use crate::{Config, FIRST_RUN};
 use cli_table::format::Padding;
 use cli_table::{format::Justify, print_stderr, Cell, Table};
 use colored::Colorize;
@@ -38,11 +38,11 @@ impl CliInterface {
         }
     }
 
-    pub fn did_connect(&self, sub_domain: &str, full_hostname: &str) {
+    pub async fn did_connect(&self, sub_domain: &str, full_hostname: &str) {
         self.spinner
             .finish_with_message("Success! Remote tunnel is now open.\n".green().to_string());
 
-        if !self.config.first_run {
+        if !*FIRST_RUN.lock().await {
             return;
         }
 

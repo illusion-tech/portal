@@ -164,7 +164,7 @@ impl Config {
             })
             .unwrap_or_default();
 
-        let portal_host = std::env::var("PORTAL_HOST").unwrap_or("portalto.dev".to_string());
+        let portal_host = std::env::var("PORTAL_HOST").unwrap_or("portal.illusiontech.cn".to_string());
 
         Config {
             allowed_hosts,

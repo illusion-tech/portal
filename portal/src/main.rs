@@ -13,6 +13,7 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
+mod cli;
 mod cli_ui;
 mod config;
 mod error;
@@ -25,6 +26,7 @@ pub use config::*;
 pub use portal_lib::*;
 
 use crate::cli_ui::CliInterface;
+use clap::Parser;
 use colored::Colorize;
 use futures::future::Either;
 use std::time::Duration;
@@ -33,8 +35,14 @@ use tokio::sync::Mutex;
 pub type ActiveStreams = Arc<RwLock<HashMap<StreamId, UnboundedSender<StreamMessage>>>>;
 
 lazy_static::lazy_static! {
+    pub static ref CLI: cli::Cli = cli::Cli::parse();
     pub static ref ACTIVE_STREAMS:ActiveStreams = Arc::new(RwLock::new(HashMap::new()));
     pub static ref RECONNECT_TOKEN: Arc<Mutex<Option<ReconnectToken>>> = Arc::new(Mutex::new(None));
+    pub static ref CONFIG: Config = match Config::load() {
+        Ok(config) => config,
+        Err(_) => std::process::exit(1),
+    };
+    pub static ref FIRST_RUN: Mutex<bool> = Mutex::new(true);
 }
 
 #[derive(Debug, Clone)]
@@ -45,22 +53,18 @@ pub enum StreamMessage {
 
 #[tokio::main]
 async fn main() {
-    let mut config = match Config::get() {
-        Ok(config) => config,
-        Err(_) => return,
-    };
-
     setup_panic!();
 
     update::check().await;
 
-    let introspect_dash_addr = introspect::start_introspect_web_dashboard(config.clone());
+    let introspect_dash_addr = introspect::start_introspect_web_dashboard(CONFIG.clone());
 
     loop {
         let (restart_tx, mut restart_rx) = unbounded();
-        let wormhole = run_wormhole(config.clone(), introspect_dash_addr, restart_tx);
+        let wormhole = run_wormhole(CONFIG.clone(), introspect_dash_addr, restart_tx);
         let result = futures::future::select(Box::pin(wormhole), restart_rx.next()).await;
-        config.first_run = false;
+        let mut first_run = FIRST_RUN.lock().await;
+        *first_run = false;
 
         match result {
             Either::Left((Err(e), _)) => match e {
@@ -69,7 +73,7 @@ async fn main() {
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
                 Error::AuthenticationFailed => {
-                    if config.secret_key.is_none() {
+                    if CONFIG.secret_key.is_none() {
                         eprintln!(
                             ">> {}",
                             "Please use an access key with the `--key` option".yellow()
