@@ -29,33 +29,33 @@ The above command opens a tunnel and forwards traffic to `localhost:8000`.
 
 ## More Options:
 ```shell script
-portal 0.1.14
+Expose your local web server to the Internet with a public url.
 
-USAGE:
-    portal [FLAGS] [OPTIONS] [SUBCOMMAND]
+Usage: portal [OPTIONS] [COMMAND]
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-    -v, --verbose    A level of verbosity, and can be used multiple times
+Commands:
+  set-auth  Store the API Authentication key
+  help      Print this message or the help of the given subcommand(s)
 
-OPTIONS:
-        --dashboard-address <dashboard-address>    Sets the address of the local introspection dashboard
-    -k, --key <key>                                Sets an API authentication key to use for this tunnel
-        --host <local-host>
-            Sets the HOST (i.e. localhost) to forward incoming tunnel traffic to [default: localhost]
-
-    -p, --port <port>
-            Sets the port to forward incoming tunnel traffic to on the target host
-
-        --scheme <scheme>
-            Sets the SCHEME (i.e. http or https) to forward incoming tunnel traffic to [default: http]
-
-    -s, --subdomain <sub-domain>                   Specify a sub-domain for this tunnel
-
-SUBCOMMANDS:
-    help        Prints this message or the help of the given subcommand(s)
-    set-auth    Store the API Authentication key
+Options:
+  -v, --verbose
+          A level of verbosity, and can be used multiple times
+  -k, --key <KEY>
+          Sets an API authentication key to use for this portal
+  -s, --sub-domain <SUB_DOMAIN>
+          Specify a sub-domain for this portal
+      --host <LOCAL_HOST>
+          Sets the HOST (i.e. localhost) to forward incoming portal traffic to [default: localhost]
+  -t, --use-tls
+          Sets the protocol for local forwarding (i.e. https://localhost) to forward incoming portal traffic to
+  -p, --port <PORT>
+          Sets the port to forward incoming portal traffic to on the target host [default: 8000]
+      --dashboard-port <DASHBOARD_PORT>
+          Sets the address of the local introspection dashboard
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
 # Host it yourself
