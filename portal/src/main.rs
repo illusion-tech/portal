@@ -14,18 +14,18 @@ use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
 mod cli;
-mod cli_ui;
 mod config;
 mod error;
 mod introspect;
 mod local;
 mod update;
+use cli::{Cli, CliInterface};
+
 pub use self::error::*;
 
 pub use config::*;
 pub use portal_lib::*;
 
-use crate::cli_ui::CliInterface;
 use clap::Parser;
 use colored::Colorize;
 use futures::future::Either;
@@ -35,7 +35,7 @@ use tokio::sync::Mutex;
 pub type ActiveStreams = Arc<RwLock<HashMap<StreamId, UnboundedSender<StreamMessage>>>>;
 
 lazy_static::lazy_static! {
-    pub static ref CLI: cli::Cli = cli::Cli::parse();
+    pub static ref CLI: Cli = Cli::parse();
     pub static ref ACTIVE_STREAMS:ActiveStreams = Arc::new(RwLock::new(HashMap::new()));
     pub static ref RECONNECT_TOKEN: Arc<Mutex<Option<ReconnectToken>>> = Arc::new(Mutex::new(None));
     pub static ref CONFIG: Config = match Config::load() {
@@ -123,7 +123,7 @@ async fn run_wormhole(
         hostname,
     } = connect_to_wormhole(&config).await?;
 
-    interface.did_connect(&sub_domain, &hostname);
+    interface.did_connect(&sub_domain, &hostname).await;
 
     // split reading and writing
     let (mut ws_sink, mut ws_stream) = websocket.split();
