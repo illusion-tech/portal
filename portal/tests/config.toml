@@ -1,0 +1,7 @@
+portal_host = 'localhost'
+portal_port = 5000
+portal_tls = false
+local_host = 'localhost'
+local_port = 8000
+local_tls = false
+verbose = true

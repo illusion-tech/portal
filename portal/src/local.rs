@@ -34,7 +34,7 @@ pub async fn setup_new_stream(
         }
     };
 
-    let local_tcp: Box<dyn AnyTcpStream> = if config.use_tls {
+    let local_tcp: Box<dyn AnyTcpStream> = if config.local_tls {
         let dns_name = config.local_host;
         let mut root_store = RootCertStore::empty();
 

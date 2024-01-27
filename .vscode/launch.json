@@ -38,7 +38,7 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": ["--config=portal/tests/config.toml"],
             "cwd": "${workspaceFolder}"
         },
         {
@@ -75,7 +75,7 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": ["--config=portal_server/tests/config.toml"],
             "cwd": "${workspaceFolder}"
         },
         {

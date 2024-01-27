@@ -38,9 +38,9 @@ lazy_static::lazy_static! {
     pub static ref CLI: Cli = Cli::parse();
     pub static ref ACTIVE_STREAMS:ActiveStreams = Arc::new(RwLock::new(HashMap::new()));
     pub static ref RECONNECT_TOKEN: Arc<Mutex<Option<ReconnectToken>>> = Arc::new(Mutex::new(None));
-    pub static ref CONFIG: Config = match Config::load() {
-        Ok(config) => config,
-        Err(_) => std::process::exit(1),
+    pub static ref CONFIG: Config = match CLI.config {
+        Some(ref config_path) => Config::load_from_file(config_path.to_str().unwrap()).unwrap(),
+        None => Config::load().unwrap(),
     };
     pub static ref FIRST_RUN: Mutex<bool> = Mutex::new(true);
 }
@@ -193,7 +193,8 @@ struct Wormhole {
 }
 
 async fn connect_to_wormhole(config: &Config) -> Result<Wormhole, Error> {
-    let (mut websocket, _) = tokio_tungstenite::connect_async(&config.control_url).await?;
+    debug!("connecting to wormhole at {}", config.portal_url);
+    let (mut websocket, _) = tokio_tungstenite::connect_async(&config.portal_url).await?;
 
     // send our Client Hello message
     let client_hello = match config.secret_key.clone() {
