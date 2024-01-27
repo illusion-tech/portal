@@ -2,8 +2,8 @@ use crate::auth::reconnect_token::ReconnectTokenPayload;
 use crate::auth::{AuthResult, AuthService};
 use crate::{ReconnectToken, CONFIG};
 use futures::{SinkExt, StreamExt};
-use tracing::error;
 use portal_lib::{ClientHello, ClientId, ClientType, ServerHello};
+use tracing::{debug, error};
 use warp::filters::ws::{Message, WebSocket};
 
 pub struct ClientHandshake {
@@ -23,7 +23,7 @@ pub async fn auth_client_handshake(
             return None;
         }
     };
-
+    debug!("got client init message: {:?}", client_hello_data);
     auth_client(client_hello_data.as_bytes(), websocket).await
 }
 
@@ -43,33 +43,36 @@ async fn auth_client(
         }
     };
 
+    debug!("got client hello: {:?}", client_hello);
+
     let (auth_key, client_id, requested_sub_domain) = match client_hello.client_type {
         ClientType::Anonymous => {
-            let data = serde_json::to_vec(&ServerHello::AuthFailed).unwrap_or_default();
-            let _ = websocket.send(Message::binary(data)).await;
-            return None;
+            // let data = serde_json::to_vec(&ServerHello::AuthFailed).unwrap_or_default();
+            // let _ = websocket.send(Message::binary(data)).await;
+            // return None;
 
-            // // determine the client and subdomain
-            // let (client_id, sub_domain) =
-            //     match (client_hello.reconnect_token, client_hello.sub_domain) {
-            //         (Some(token), _) => {
-            //             return handle_reconnect_token(token, websocket).await;
-            //         }
-            //         (None, Some(sd)) => (
-            //             ClientId::generate(),
-            //             ServerHello::prefixed_random_domain(&sd),
-            //         ),
-            //         (None, None) => (ClientId::generate(), ServerHello::random_domain()),
-            //     };
+            // determine the client and subdomain
+            let (client_id, sub_domain) =
+                match (client_hello.reconnect_token, client_hello.sub_domain) {
+                    (Some(token), _) => {
+                        return handle_reconnect_token(token, websocket).await;
+                    }
+                    (None, Some(sd)) => (
+                        ClientId::generate(),
+                        ServerHello::prefixed_random_domain(&sd),
+                    ),
+                    (None, None) => (ClientId::generate(), ServerHello::random_domain()),
+                };
 
-            // return Some((
-            //     websocket,
-            //     ClientHandshake {
-            //         id: client_id,
-            //         sub_domain,
-            //         is_anonymous: true,
-            //     },
-            // ));
+            debug!(?client_id, ?sub_domain, "generated client id and sub domain");
+            return Some((
+                websocket,
+                ClientHandshake {
+                    id: client_id,
+                    sub_domain,
+                    is_anonymous: true,
+                },
+            ));
         }
         ClientType::Auth { key } => match client_hello.sub_domain {
             Some(requested_sub_domain) => {

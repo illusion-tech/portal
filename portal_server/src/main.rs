@@ -66,10 +66,10 @@ async fn main() {
         .with(tracing_subscriber::fmt::Layer::default());
     tracing::subscriber::set_global_default(subscriber).expect("setting global default failed");
 
-    tracing::info!("starting server!");
+    info!("starting server!");
 
     control_server::spawn(([0, 0, 0, 0], CONFIG.control_port));
-    info!("started portal server on 0.0.0.0:{}", CONFIG.control_port);
+    info!("started portal control server on 0.0.0.0:{}", CONFIG.control_port);
 
     network::spawn(([0, 0, 0, 0, 0, 0, 0, 0], CONFIG.internal_network_port));
     info!(
@@ -94,6 +94,8 @@ async fn main() {
                 continue;
             }
         };
+
+        info!("accepted connection from: {}", socket.peer_addr().unwrap());
 
         tokio::spawn(
             async move {

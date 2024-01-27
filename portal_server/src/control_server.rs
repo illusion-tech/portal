@@ -5,7 +5,7 @@ use chrono::Utc;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
-use tracing::{error, Instrument};
+use tracing::{error, info, warn, Instrument};
 use warp::Rejection;
 
 pub fn spawn<A: Into<SocketAddr>>(addr: A) {
@@ -13,6 +13,7 @@ pub fn spawn<A: Into<SocketAddr>>(addr: A) {
         tracing::debug!("Health Check #2 triggered");
         "ok"
     });
+
     let client_conn = warp::path("wormhole").and(client_ip()).and(warp::ws()).map(
         move |client_ip: IpAddr, ws: Ws| {
             ws.on_upgrade(move |w| {
@@ -55,7 +56,7 @@ fn client_ip() -> impl Filter<Extract = (IpAddr,), Error = Rejection> + Copy {
 async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
     // check if this client is blocked
     if CONFIG.blocked_ips.contains(&client_ip) {
-        tracing::warn!(?client_ip, "client ip is on block list, denying connection");
+        warn!(?client_ip, "client ip is on block list, denying connection");
         let _ = websocket.close().await;
         return;
     }
@@ -65,7 +66,7 @@ async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
         None => return,
     };
 
-    tracing::info!(client_ip=%client_ip, subdomain=%handshake.sub_domain, "open tunnel");
+    info!(client_ip=%client_ip, subdomain=%handshake.sub_domain, "open tunnel");
 
     let (tx, rx) = unbounded::<ControlPacket>();
     let mut client = ConnectedClient {
