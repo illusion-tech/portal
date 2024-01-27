@@ -73,6 +73,6 @@ CTRL_HOST="localhost" CTRL_PORT=5000 CTRL_TLS_OFF=1 cargo run --bin portal -- -p
 
 # Test it out!
 # Remember 8080 is our local portal TCP server
-curl -H '<subdomain>.localhost' "http://localhost:8080/some_path?with=somequery"
+curl -H 'Host: <subdomain>.localhost' "http://localhost:8080/some_path?with=somequery"
 ```
 See `portal_server/src/config.rs` for the environment variables for configuration.
