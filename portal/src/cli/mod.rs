@@ -1,4 +1,5 @@
 use core::time::Duration;
+use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
@@ -66,7 +67,8 @@ pub struct CliInterface {
 }
 impl CliInterface {
     pub fn start(config: Config, introspect: SocketAddr) -> Self {
-        let spinner = new_spinner("Opening remote tunnel...");
+        let msg = format!("Opening remote tunnel to {}", config.portal_url());
+        let spinner = new_spinner(msg);
         Self {
             spinner,
             config,
@@ -137,7 +139,7 @@ impl CliInterface {
     }
 }
 
-fn new_spinner(message: &'static str) -> ProgressBar {
+fn new_spinner(message: impl Into<Cow<'static, str>>) -> ProgressBar {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(150));
     pb.set_style(

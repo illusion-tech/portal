@@ -193,8 +193,8 @@ struct Wormhole {
 }
 
 async fn connect_to_wormhole(config: &Config) -> Result<Wormhole, Error> {
-    debug!("connecting to wormhole at {}", config.portal_url);
-    let (mut websocket, _) = tokio_tungstenite::connect_async(&config.portal_url).await?;
+    debug!("connecting to wormhole at {}", config.portal_url());
+    let (mut websocket, _) = tokio_tungstenite::connect_async(&config.portal_url()).await?;
 
     // send our Client Hello message
     let client_hello = match config.secret_key.clone() {

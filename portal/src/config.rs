@@ -34,7 +34,8 @@ struct InternalConfig {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub client_id: ClientId,
-    pub portal_url: String,
+    pub portal_host: String,
+    pub portal_port: u16,
     pub portal_tls: bool,
     pub local_tls: bool,
     pub local_host: String,
@@ -82,8 +83,9 @@ impl From<&mut InternalConfig> for Config {
             local_port,
             local_addr,
             local_tls,
+            portal_host,
+            portal_port,
             portal_tls,
-            portal_url,
             secret_key,
             dashboard_port,
             verbose,
@@ -132,17 +134,16 @@ impl Config {
         let tls_off = env::var(TLS_OFF_ENV).is_ok();
         let portal_host = env::var(HOST_ENV).unwrap_or(DEFAULT_CONTROL_HOST.to_string());
         let portal_port = env::var(PORT_ENV).unwrap_or(DEFAULT_CONTROL_PORT.to_string());
-        let scheme = if tls_off { "ws" } else { "wss" };
-        let portal_url = format!("{}://{}:{}/wormhole", scheme, portal_host, portal_port);
 
         info!("Control Server URL: {}", &portal_host);
 
         Ok(Config {
             client_id: ClientId::generate(),
+            portal_host,
+            portal_port: portal_port.parse().unwrap(),
             local_host: CLI.local_host.clone(),
-            local_tls: CLI.use_tls,
-            portal_url,
             local_port: CLI.port,
+            local_tls: CLI.use_tls,
             local_addr,
             sub_domain,
             dashboard_port: CLI.dashboard_port.unwrap_or(0),
@@ -167,5 +168,20 @@ impl Config {
     pub fn ws_forward_url(&self) -> String {
         let scheme = if self.local_tls { "wss" } else { "ws" };
         format!("{}://{}:{}", scheme, &self.local_host, &self.local_port)
+    }
+
+    pub fn portal_url(&self) -> String {
+        format!(
+            "{}://{}:{}/wormhole",
+            self.portal_schema(), self.portal_host, self.portal_port
+        )
+    }
+
+    pub fn portal_schema(&self) -> &str {
+        if self.portal_tls {
+            "wss"
+        } else {
+            "ws"
+        }
     }
 }
