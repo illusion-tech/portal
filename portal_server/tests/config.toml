@@ -1,6 +1,6 @@
 allowed_hosts = [
   'localhost',
-  'illusiontech.cn',
+  'portal.illusiontech.cn',
 ]
 
-portal_host = 'localhost'
+portal_host = 'portal.illusiontech.cn'
