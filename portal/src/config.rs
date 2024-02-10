@@ -101,7 +101,6 @@ impl Config {
         Ok(Config::from(&mut config))
     }
 
-    /// Parse the URL to use to connect to the wormhole control server
     pub fn load() -> Result<Config, ()> {
         if CLI.verbose {
             std::env::set_var("RUST_LOG", "portal=debug");
@@ -165,15 +164,19 @@ impl Config {
         let scheme = if self.local_tls { "https" } else { "http" };
         format!("{}://{}:{}", &scheme, &self.local_host, &self.local_port)
     }
+
     pub fn ws_forward_url(&self) -> String {
         let scheme = if self.local_tls { "wss" } else { "ws" };
         format!("{}://{}:{}", scheme, &self.local_host, &self.local_port)
     }
 
+    /// Get the URL to use to connect to the wormhole control server
     pub fn portal_url(&self) -> String {
         format!(
             "{}://{}:{}/wormhole",
-            self.portal_schema(), self.portal_host, self.portal_port
+            self.portal_schema(),
+            self.portal_host,
+            self.portal_port
         )
     }
 
