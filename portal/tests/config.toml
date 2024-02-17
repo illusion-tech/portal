@@ -1,3 +1,4 @@
+sub_domain = 'test'
 portal_host = 'portal.illusiontech.cn'
 portal_port = 5000
 portal_tls = false

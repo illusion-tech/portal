@@ -68,10 +68,6 @@ impl From<&mut InternalConfig> for Config {
             .take()
             .unwrap_or(DEFAULT_CONTROL_HOST.to_string());
         let portal_port = config.portal_port.unwrap_or(5000);
-        let portal_url = format!(
-            "{}://{}:{}/wormhole",
-            portal_schema, portal_host, portal_port
-        );
         let secret_key = None.map(SecretKey);
         let dashboard_port = config.dashboard_port.unwrap_or(0);
         let verbose = config.verbose.unwrap_or(false);
@@ -97,7 +93,9 @@ impl Config {
     pub fn load_from_file(path: &str) -> Result<Config, Box<dyn Error>> {
         let config = std::fs::read_to_string(path)?;
         let mut config: InternalConfig = toml::from_str(&config)?;
-        std::env::set_var("RUST_LOG", "portal=debug");
+        if config.verbose.unwrap_or(false) {
+            std::env::set_var("RUST_LOG", "portal=debug");
+        }
         Ok(Config::from(&mut config))
     }
 

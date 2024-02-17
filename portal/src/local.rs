@@ -23,7 +23,7 @@ pub async fn setup_new_stream(
     stream_id: StreamId,
 ) -> Option<UnboundedSender<StreamMessage>> {
     info!("setting up local stream: {}", &stream_id.to_string());
-
+    debug!("connecting to local service: {:?}", config.local_addr);
     let local_tcp = match TcpStream::connect(config.local_addr).await {
         Ok(s) => s,
         Err(e) => {

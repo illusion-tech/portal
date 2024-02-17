@@ -71,14 +71,15 @@ pub enum StreamMessage {
 #[tokio::main]
 async fn main() {
     setup_panic!();
-
+    let config = get_config();
+    pretty_env_logger::init();
     update::check().await;
 
-    let introspect_dash_addr = introspect::start_introspect_web_dashboard(get_config().clone());
+    let introspect_dash_addr = introspect::start_introspect_web_dashboard(config.clone());
 
     loop {
         let (restart_tx, mut restart_rx) = unbounded();
-        let wormhole = run_wormhole(get_config().clone(), introspect_dash_addr, restart_tx);
+        let wormhole = run_wormhole(config.clone(), introspect_dash_addr, restart_tx);
         let result = futures::future::select(Box::pin(wormhole), restart_rx.next()).await;
         let mut first_run = get_first_run().lock().await;
         *first_run = false;
@@ -90,7 +91,7 @@ async fn main() {
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
                 Error::AuthenticationFailed => {
-                    if get_config().secret_key.is_none() {
+                    if config.secret_key.is_none() {
                         bunt::eprintln!(
                             "{$yellow}>> Please use an access key with the `--key` option{/$}"
                         );
