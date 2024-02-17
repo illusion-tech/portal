@@ -11,7 +11,7 @@ pub use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 
 mod cli;
 mod config;
@@ -27,7 +27,6 @@ pub use config::*;
 pub use portal_lib::*;
 
 use clap::Parser;
-use colored::Colorize;
 use futures::future::Either;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -92,27 +91,18 @@ async fn main() {
                 }
                 Error::AuthenticationFailed => {
                     if get_config().secret_key.is_none() {
-                        eprintln!(
-                            ">> {}",
-                            "Please use an access key with the `--key` option".yellow()
-                        );
-                        eprintln!(
-                            ">> {}{}",
-                            "You can get your access key here: ".yellow(),
-                            "https://dashboard.tunnelto.dev".yellow().underline()
-                        );
-                    } else {
-                        eprintln!(
-                            ">> {}{}",
-                            "Please check your access key at ".yellow(),
-                            "https://dashboard.tunnelto.dev".yellow().underline()
+                        bunt::eprintln!(
+                            "{$yellow}>> Please use an access key with the `--key` option{/$}"
                         );
                     }
-                    eprintln!("\nError: {}", format!("{}", e).red());
+                    bunt::eprintln!(
+                        "{$yellow}>> You can get your access key here: {/$}{$yellow+underline}https://dashboard.portal.illusiontech.cn{/$}"
+                    );
+                    bunt::eprintln!("{$red}\nError: {e}{/$}", e = e);
                     return;
                 }
                 _ => {
-                    eprintln!("Error: {}", format!("{}", e).red());
+                    bunt::eprintln!("{$red}Error: {e}{/$}", e = e);
                     return;
                 }
             },
@@ -292,7 +282,10 @@ async fn process_control_flow_message(
             log::info!("got ping. reconnect_token={}", reconnect_token.is_some());
 
             if let Some(reconnect) = reconnect_token {
-                let _ = get_reconnect_token().lock().await.replace(reconnect.clone());
+                let _ = get_reconnect_token()
+                    .lock()
+                    .await
+                    .replace(reconnect.clone());
             }
             let _ = tunnel_tx.send(ControlPacket::Ping(None)).await;
         }
@@ -304,7 +297,11 @@ async fn process_control_flow_message(
             info!("got end stream [{:?}]", &stream_id);
 
             tokio::spawn(async move {
-                let stream = get_active_streams().read().unwrap().get(&stream_id).cloned();
+                let stream = get_active_streams()
+                    .read()
+                    .unwrap()
+                    .get(&stream_id)
+                    .cloned();
                 if let Some(mut tx) = stream {
                     tokio::time::sleep(Duration::from_secs(5)).await;
                     let _ = tx.send(StreamMessage::Close).await.map_err(|e| {

@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,11 +14,10 @@ const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub async fn check() {
     match check_inner().await {
         Ok(Some(new)) => {
-            eprintln!(
-                "{} {} => {} ({})\n",
-                "New version available:".yellow().italic(),
-                CURRENT_VERSION.bright_blue(),
-                new.name.as_str().green(),
+            bunt::eprintln!(
+                "{$yellow+italic}New version available:{/$} {[cyan]} => {[green]} {}",
+                CURRENT_VERSION,
+                new.name.as_str(),
                 new.html_url
             );
         }

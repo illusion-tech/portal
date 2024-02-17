@@ -7,7 +7,6 @@ use crate::{get_first_run, Config};
 use clap::{Parser, Subcommand};
 use cli_table::format::Padding;
 use cli_table::{format::Justify, print_stderr, Cell, Table};
-use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 
 /// The CLI options for the portal
@@ -81,11 +80,9 @@ impl CliInterface {
             && (self.config.sub_domain.as_deref() != Some(sub_domain))
         {
             if self.config.secret_key.is_some() {
-                Some(format!("{}",
-                          "To use custom sub-domains feature, please upgrade your billing plan at https://dashboard.tunnelto.dev.".yellow()))
+                Some("\x1b[33mTo use custom sub-domains feature, please upgrade your billing plan at https://dashboard.tunnelto.dev.\x1b[0m".to_string())
             } else {
-                Some(format!("{}",
-                          "To access the sub-domain feature, get your authentication key at https://dashboard.tunnelto.dev.".yellow()))
+                Some("\x1b[33mTo access the sub-domain feature, get your authentication key at https://dashboard.tunnelto.dev.\x1b[0m".to_string())
             }
         } else {
             None
@@ -93,30 +90,32 @@ impl CliInterface {
     }
 
     pub async fn did_connect(&self, sub_domain: &str, full_hostname: &str) {
-        self.spinner
-            .finish_with_message("Success! Remote tunnel is now open.\n".green().to_string());
+        self.spinner.finish_with_message(
+            "\x1b[32mSuccess! Remote tunnel is now open.\x1b[0m\n".to_string(),
+        );
 
         if !*get_first_run().lock().await {
             return;
         }
 
-        let public_url = self.config.activation_url(full_hostname).bold().green();
+        let public_url = format!(
+            "\x1b[1;33m{}\x1b[0m",
+            self.config.activation_url(full_hostname)
+        );
         let forward_url = self.config.forward_url();
-        let inspect = format!("http://localhost:{}", self.introspect.port());
+        let inspect = format!("\x1b[35mhttp://localhost:{}\x1b[0m", self.introspect.port());
 
         let table = vec![
             vec![
-                "Public tunnel URL".green().cell(),
+                "\x1b[32mPublic tunnel URL\x1b[0m".cell(),
                 public_url
-                    .green()
                     .cell()
                     .padding(Padding::builder().left(4).right(4).build())
                     .justify(Justify::Left),
             ],
             vec![
-                "Local inspect dashboard".magenta().cell(),
+                "\x1b[35mLocal inspect dashboard\x1b[0m".cell(),
                 inspect
-                    .magenta()
                     .cell()
                     .padding(Padding::builder().left(4).build())
                     .justify(Justify::Left),
@@ -134,7 +133,7 @@ impl CliInterface {
         print_stderr(table).expect("failed to generate starting terminal user interface");
 
         if let Some(notice) = self.get_sub_domain_notice(sub_domain) {
-            eprintln!("\n{}: {}\n", ">>> Notice".yellow(), notice);
+            bunt::eprintln!("\n{$yellow}>>> Notice{/$}: {}\n", notice);
         }
     }
 }

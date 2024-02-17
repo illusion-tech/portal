@@ -17,10 +17,10 @@ portal_lib = {path = "../portal_lib"}
 
 askama = {version = "0.12", features = ["serde-json"]}
 bytes = "1.0"
+bunt = "0.2.8"
 chrono = "0.4.11"
 clap = {version = "4.4", features = ["derive"]}
 cli-table = "0.4"
-colored = "2.0"
 dirs = "5.0"
 futures = "0.3"
 http-body = "1.0"
