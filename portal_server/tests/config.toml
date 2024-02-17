@@ -4,3 +4,4 @@ allowed_hosts = [
 ]
 
 portal_host = 'portal.illusiontech.cn'
+remote_port = 80
