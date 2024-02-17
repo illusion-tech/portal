@@ -7,7 +7,7 @@ pub use self::server::spawn;
 mod proxy;
 pub use self::proxy::proxy_stream;
 use crate::network::server::{HostQuery, HostQueryResponse};
-use crate::ClientId;
+use crate::{get_config, ClientId};
 use reqwest::StatusCode;
 use trust_dns_resolver::TokioAsyncResolver;
 
@@ -35,7 +35,7 @@ pub struct Instance {
 impl Instance {
     /// get all instances where our app runs
     async fn get_instances() -> Result<Vec<Instance>, Error> {
-        let query = if let Some(dns) = crate::CONFIG.gossip_dns_host.clone() {
+        let query = if let Some(dns) = get_config().gossip_dns_host.clone() {
             dns
         } else {
             tracing::warn!("warning! gossip mode disabled!");
@@ -55,7 +55,7 @@ impl Instance {
 
     /// query the instance and see if it runs our host
     async fn serves_host(self, host: &str) -> Result<(Instance, ClientId), Error> {
-        let addr = SocketAddr::new(self.ip, crate::CONFIG.internal_network_port);
+        let addr = SocketAddr::new(self.ip, get_config().internal_network_port);
         let url = format!("http://{}", addr);
         let client = reqwest::Client::new();
         let response = client

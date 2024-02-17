@@ -54,8 +54,9 @@ fn client_ip() -> impl Filter<Extract = (IpAddr,), Error = Rejection> + Copy {
 
 #[tracing::instrument(skip(websocket))]
 async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
+    let config = get_config();
     // check if this client is blocked
-    if CONFIG.blocked_ips.contains(&client_ip) {
+    if config.blocked_ips.contains(&client_ip) {
         warn!(?client_ip, "client ip is on block list, denying connection");
         let _ = websocket.close().await;
         return;
@@ -110,7 +111,7 @@ async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
                         client_id: client.id.clone(),
                         expires: Utc::now() + chrono::Duration::minutes(2),
                     }
-                    .to_token(&CONFIG.master_sig_key)
+                    .to_token(&config.master_sig_key)
                     .map_err(|e| error!("unable to create reconnect token: {:?}", e))
                     .ok()
                 } else {
@@ -141,7 +142,11 @@ async fn try_client_handshake(websocket: WebSocket) -> Option<(WebSocket, Client
     // Send server hello success
     let data = serde_json::to_vec(&ServerHello::Success {
         sub_domain: client_handshake.sub_domain.clone(),
-        hostname: format!("{}.{}", &client_handshake.sub_domain, CONFIG.portal_host),
+        hostname: format!(
+            "{}.{}",
+            &client_handshake.sub_domain,
+            get_config().portal_host
+        ),
         client_id: client_handshake.id.clone(),
     })
     .unwrap_or_default();
@@ -234,7 +239,9 @@ async fn process_client_messages(client: ConnectedClient, mut client_conn: Split
             }
         };
 
-        let stream = ACTIVE_STREAMS.get(&stream_id).map(|s| s.value().clone());
+        let stream = get_active_streams()
+            .get(&stream_id)
+            .map(|s| s.value().clone());
 
         if let Some(mut stream) = stream {
             let _ = stream.tx.send(message).await.map_err(|error| {

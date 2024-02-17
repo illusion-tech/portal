@@ -40,7 +40,7 @@ impl Connections {
     }
 
     pub fn update_host(client: &ConnectedClient) {
-        CONNECTIONS
+        get_connections()
             .hosts
             .insert(client.host.clone(), client.clone());
     }
@@ -48,17 +48,18 @@ impl Connections {
     pub fn remove(client: &ConnectedClient) {
         client.tx.close_channel();
 
+        let connections = get_connections();
         // ensure another client isn't using this host
-        if CONNECTIONS
+        if connections
             .hosts
             .get(&client.host)
             .map_or(false, |c| c.id == client.id)
         {
             tracing::debug!("dropping sub-domain: {}", &client.host);
-            CONNECTIONS.hosts.remove(&client.host);
+            connections.hosts.remove(&client.host);
         };
 
-        CONNECTIONS.clients.remove(&client.id);
+        connections.clients.remove(&client.id);
         tracing::debug!("rm client: {}", &client.id);
 
         // // drop all the streams
@@ -72,24 +73,25 @@ impl Connections {
     }
 
     pub fn client_for_host(host: &String) -> Option<ClientId> {
-        CONNECTIONS.hosts.get(host).map(|c| c.id.clone())
+        get_connections().hosts.get(host).map(|c| c.id.clone())
     }
 
     pub fn get(client_id: &ClientId) -> Option<ConnectedClient> {
-        CONNECTIONS
+        get_connections()
             .clients
             .get(client_id)
             .map(|c| c.value().clone())
     }
 
     pub fn find_by_host(host: &String) -> Option<ConnectedClient> {
-        CONNECTIONS.hosts.get(host).map(|c| c.value().clone())
+        get_connections().hosts.get(host).map(|c| c.value().clone())
     }
 
     pub fn add(client: ConnectedClient) {
-        CONNECTIONS
+        let connections = get_connections();
+        connections
             .clients
             .insert(client.id.clone(), client.clone());
-        CONNECTIONS.hosts.insert(client.host.clone(), client);
+        connections.hosts.insert(client.host.clone(), client);
     }
 }

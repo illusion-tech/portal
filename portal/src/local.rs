@@ -77,7 +77,7 @@ pub async fn setup_new_stream(
 
     // Forward remote packets to local tcp
     let (tx, rx) = unbounded();
-    ACTIVE_STREAMS
+    get_active_streams()
         .write()
         .unwrap()
         .insert(stream_id.clone(), tx.clone());
@@ -107,7 +107,7 @@ pub async fn process_local_tcp<T>(
 
         if n == 0 {
             info!("done reading from client stream");
-            ACTIVE_STREAMS.write().unwrap().remove(&stream_id);
+            get_active_streams().write().unwrap().remove(&stream_id);
             return;
         }
 

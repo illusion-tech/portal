@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use crate::{Config, FIRST_RUN};
+use crate::{get_first_run, Config};
 use clap::{Parser, Subcommand};
 use cli_table::format::Padding;
 use cli_table::{format::Justify, print_stderr, Cell, Table};
@@ -96,7 +96,7 @@ impl CliInterface {
         self.spinner
             .finish_with_message("Success! Remote tunnel is now open.\n".green().to_string());
 
-        if !*FIRST_RUN.lock().await {
+        if !*get_first_run().lock().await {
             return;
         }
 

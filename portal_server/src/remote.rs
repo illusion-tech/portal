@@ -20,7 +20,7 @@ const HEALTH_CHECK_PATH: &[u8] = b"/0xDEADBEEF_HEALTH_CHECK";
 
 async fn direct_to_control(mut incoming: TcpStream) {
     let mut control_socket =
-        match TcpStream::connect(format!("localhost:{}", CONFIG.control_port)).await {
+        match TcpStream::connect(format!("localhost:{}", get_config().control_port)).await {
             Ok(s) => s,
             Err(error) => {
                 tracing::warn!(?error, "failed to connect to local control server");
@@ -55,11 +55,13 @@ pub async fn accept_connection(socket: TcpStream) {
         None => return,
     };
 
+    let config = get_config();
+
     tracing::info!(%host, %forwarded_for, "new remote connection");
-    tracing::debug!("Allowed hosts: {}", CONFIG.allowed_hosts.join(", "));
+    tracing::debug!("Allowed hosts: {}", config.allowed_hosts.join(", "));
 
     // parse the host string and find our client
-    if CONFIG.allowed_hosts.contains(&host) {
+    if config.allowed_hosts.contains(&host) {
         error!("redirect to homepage");
         let _ = socket.write_all(HTTP_REDIRECT_RESPONSE).await;
         return;
@@ -114,7 +116,7 @@ pub async fn accept_connection(socket: TcpStream) {
     let (stream, sink) = tokio::io::split(socket);
 
     // add our stream
-    ACTIVE_STREAMS.insert(stream_id.clone(), active_stream.clone());
+    get_active_streams().insert(stream_id.clone(), active_stream.clone());
 
     // read from socket, write to client
     let span = observability::remote_trace("process_tcp_stream");
@@ -154,11 +156,13 @@ fn validate_host_prefix(host: &str) -> Option<String> {
     let prefix = &domain_segments[0];
     let remaining = &domain_segments[1..].join(".");
 
+    let config = get_config();
+
     debug!(%host, %prefix, "parsed host");
     debug!(%prefix, %remaining, "parsed host");
-    debug!(?CONFIG.allowed_hosts, "allowed hosts");
+    debug!(?config.allowed_hosts, "allowed hosts");
 
-    if CONFIG.allowed_hosts.contains(remaining) {
+    if config.allowed_hosts.contains(remaining) {
         Some(prefix.to_string())
     } else {
         None
@@ -338,7 +342,7 @@ async fn tunnel_to_stream(
                     error!("error shutting down tcp stream");
                 });
 
-                ACTIVE_STREAMS.remove(&stream_id);
+                get_active_streams().remove(&stream_id);
                 return;
             }
         };

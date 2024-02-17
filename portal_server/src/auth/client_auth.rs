@@ -1,6 +1,6 @@
 use crate::auth::reconnect_token::ReconnectTokenPayload;
 use crate::auth::{AuthResult, AuthService};
-use crate::{ReconnectToken, CONFIG};
+use crate::{get_config, ReconnectToken};
 use futures::{SinkExt, StreamExt};
 use portal_lib::{ClientHello, ClientId, ClientType, ServerHello};
 use tracing::{debug, error};
@@ -64,7 +64,11 @@ async fn auth_client(
                     (None, None) => (ClientId::generate(), ServerHello::random_domain()),
                 };
 
-            debug!(?client_id, ?sub_domain, "generated client id and sub domain");
+            debug!(
+                ?client_id,
+                ?sub_domain,
+                "generated client id and sub domain"
+            );
             return Some((
                 websocket,
                 ClientHandshake {
@@ -107,7 +111,7 @@ async fn auth_client(
 
     // next authenticate the sub-domain
     let sub_domain =
-        match crate::AUTH_DB_SERVICE.auth_sub_domain(&auth_key.0, &requested_sub_domain) {
+        match crate::get_auth_db_service().auth_sub_domain(&auth_key.0, &requested_sub_domain) {
             Ok(AuthResult::Available) | Ok(AuthResult::ReservedByYou) => requested_sub_domain,
             Ok(AuthResult::ReservedByYouButDelinquent) | Ok(AuthResult::PaymentRequired) => {
                 // note: delinquent payments get a random suffix
@@ -148,7 +152,7 @@ async fn handle_reconnect_token(
     token: ReconnectToken,
     mut websocket: WebSocket,
 ) -> Option<(WebSocket, ClientHandshake)> {
-    let payload = match ReconnectTokenPayload::verify(token, &CONFIG.master_sig_key) {
+    let payload = match ReconnectTokenPayload::verify(token, &get_config().master_sig_key) {
         Ok(payload) => payload,
         Err(error) => {
             error!(?error, "invalid reconnect token");
@@ -194,7 +198,7 @@ async fn sanitize_sub_domain_and_pre_validate(
     }
 
     // ensure it's not a restricted one
-    if CONFIG.blocked_sub_domains.contains(&sub_domain) {
+    if get_config().blocked_sub_domains.contains(&sub_domain) {
         error!("invalid client hello: sub-domain restrict!");
         let data = serde_json::to_vec(&ServerHello::SubDomainInUse).unwrap_or_default();
         let _ = websocket.send(Message::binary(data)).await;

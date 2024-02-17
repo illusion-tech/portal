@@ -4,13 +4,12 @@ use warp::Filter;
 
 use dashmap::DashMap;
 pub use portal_lib::*;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use tokio::net::TcpListener;
 
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::stream::{SplitSink, SplitStream};
-use lazy_static::lazy_static;
 
 mod connected_clients;
 use self::connected_clients::*;
@@ -33,6 +32,7 @@ mod observability;
 
 mod cli;
 use clap::Parser;
+use cli::Cli;
 
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -40,18 +40,33 @@ use tracing_subscriber::registry;
 
 use tracing::{error, info, Instrument};
 
-lazy_static! {
-    pub static ref CLI: cli::Cli = cli::Cli::parse();
+static CLI: OnceLock<Cli> = OnceLock::new();
+static CONNECTIONS: OnceLock<Connections> = OnceLock::new();
+static ACTIVE_STREAMS: OnceLock<ActiveStreams> = OnceLock::new();
+static CONFIG: OnceLock<Config> = OnceLock::new();
+static AUTH_DB_SERVICE: OnceLock<crate::auth::NoAuth> = OnceLock::new();
 
-    pub static ref CONNECTIONS: Connections = Connections::new();
-    pub static ref ACTIVE_STREAMS: ActiveStreams = Arc::new(DashMap::new());
-    pub static ref CONFIG: Config = match CLI.config {
+pub fn get_cli() -> &'static Cli {
+    CLI.get_or_init(Cli::parse)
+}
+
+pub fn get_connections() -> &'static Connections {
+    CONNECTIONS.get_or_init(Connections::new)
+}
+
+pub fn get_active_streams() -> &'static ActiveStreams {
+    ACTIVE_STREAMS.get_or_init(|| Arc::new(DashMap::new()))
+}
+
+pub fn get_config() -> &'static Config {
+    CONFIG.get_or_init(|| match get_cli().config {
         Some(ref config_path) => Config::load_from_file(config_path.to_str().unwrap()).unwrap(),
-        None => Config::load_from_env()
-    };
+        None => Config::load_from_env(),
+    })
+}
 
-    // To disable all authentication:
-    pub static ref AUTH_DB_SERVICE: crate::auth::NoAuth = crate::auth::NoAuth;
+pub fn get_auth_db_service() -> &'static crate::auth::NoAuth {
+    AUTH_DB_SERVICE.get_or_init(|| crate::auth::NoAuth)
 }
 
 #[tokio::main]
@@ -68,18 +83,23 @@ async fn main() {
 
     info!("starting server!");
 
-    control_server::spawn(([0, 0, 0, 0], CONFIG.control_port));
-    info!("started portal control server on 0.0.0.0:{}", CONFIG.control_port);
+    let config = get_config();
 
-    network::spawn(([0, 0, 0, 0, 0, 0, 0, 0], CONFIG.internal_network_port));
+    control_server::spawn(([0, 0, 0, 0], config.control_port));
     info!(
-        "start network service on [::]:{}",
-        CONFIG.internal_network_port
+        "started portal control server on 0.0.0.0:{}",
+        config.control_port
     );
 
-    let listen_addr = format!("[::]:{}", CONFIG.remote_port);
+    network::spawn(([0, 0, 0, 0, 0, 0, 0, 0], config.internal_network_port));
+    info!(
+        "start network service on [::]:{}",
+        config.internal_network_port
+    );
+
+    let listen_addr = format!("[::]:{}", config.remote_port);
     info!("listening on: {}", &listen_addr);
-    info!("portal server with hostname: {}", &CONFIG.portal_host);
+    info!("portal server with hostname: {}", config.portal_host);
 
     // create our accept any server
     let listener = TcpListener::bind(listen_addr)

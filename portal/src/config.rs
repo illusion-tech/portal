@@ -102,30 +102,31 @@ impl Config {
     }
 
     pub fn load() -> Result<Config, ()> {
-        if CLI.verbose {
+        let cli = get_cli();
+        if cli.verbose {
             std::env::set_var("RUST_LOG", "portal=debug");
         }
 
         pretty_env_logger::init();
 
         let secret_key: Option<String> = None;
-        let sub_domain = CLI.sub_domain.clone();
+        let sub_domain = cli.sub_domain.clone();
 
-        let local_addr = (CLI.local_host.as_str(), CLI.port)
+        let local_addr = (cli.local_host.as_str(), cli.port)
             .to_socket_addrs()
             .map_err(|_| {
                 error!(
                     "Failed to resolve local address: {}:{}",
-                    CLI.local_host.as_str(),
-                    CLI.port
+                    cli.local_host.as_str(),
+                    cli.port
                 )
             })?
             .next()
             .ok_or_else(|| {
                 error!(
                     "No IP addresses found for: {}:{}",
-                    CLI.local_host.as_str(),
-                    CLI.port
+                    cli.local_host.as_str(),
+                    cli.port
                 )
             })?;
 
@@ -140,13 +141,13 @@ impl Config {
             client_id: ClientId::generate(),
             portal_host,
             portal_port: portal_port.parse().unwrap(),
-            local_host: CLI.local_host.clone(),
-            local_port: CLI.port,
-            local_tls: CLI.use_tls,
+            local_host: cli.local_host.clone(),
+            local_port: cli.port,
+            local_tls: cli.use_tls,
             local_addr,
             sub_domain,
-            dashboard_port: CLI.dashboard_port.unwrap_or(0),
-            verbose: CLI.verbose,
+            dashboard_port: cli.dashboard_port.unwrap_or(0),
+            verbose: cli.verbose,
             secret_key: secret_key.map(SecretKey),
             portal_tls: !tls_off,
         })

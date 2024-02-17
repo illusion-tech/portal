@@ -11,7 +11,7 @@ pub use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, OnceLock};
 
 mod cli;
 mod config;
@@ -34,15 +34,33 @@ use tokio::sync::Mutex;
 
 pub type ActiveStreams = Arc<RwLock<HashMap<StreamId, UnboundedSender<StreamMessage>>>>;
 
-lazy_static::lazy_static! {
-    pub static ref CLI: Cli = Cli::parse();
-    pub static ref ACTIVE_STREAMS:ActiveStreams = Arc::new(RwLock::new(HashMap::new()));
-    pub static ref RECONNECT_TOKEN: Arc<Mutex<Option<ReconnectToken>>> = Arc::new(Mutex::new(None));
-    pub static ref CONFIG: Config = match CLI.config {
+static CLI: OnceLock<Cli> = OnceLock::new();
+static ACTIVE_STREAMS: OnceLock<ActiveStreams> = OnceLock::new();
+static RECONNECT_TOKEN: OnceLock<Arc<Mutex<Option<ReconnectToken>>>> = OnceLock::new();
+static CONFIG: OnceLock<Config> = OnceLock::new();
+static FIRST_RUN: OnceLock<Mutex<bool>> = OnceLock::new();
+
+pub fn get_cli() -> &'static Cli {
+    CLI.get_or_init(Cli::parse)
+}
+
+pub fn get_active_streams() -> &'static ActiveStreams {
+    ACTIVE_STREAMS.get_or_init(|| Arc::new(RwLock::new(HashMap::new())))
+}
+
+pub fn get_reconnect_token() -> &'static Arc<Mutex<Option<ReconnectToken>>> {
+    RECONNECT_TOKEN.get_or_init(|| Arc::new(Mutex::new(None)))
+}
+
+pub fn get_config() -> &'static Config {
+    CONFIG.get_or_init(|| match get_cli().config {
         Some(ref config_path) => Config::load_from_file(config_path.to_str().unwrap()).unwrap(),
         None => Config::load().unwrap(),
-    };
-    pub static ref FIRST_RUN: Mutex<bool> = Mutex::new(true);
+    })
+}
+
+pub fn get_first_run() -> &'static Mutex<bool> {
+    FIRST_RUN.get_or_init(|| Mutex::new(true))
 }
 
 #[derive(Debug, Clone)]
@@ -57,13 +75,13 @@ async fn main() {
 
     update::check().await;
 
-    let introspect_dash_addr = introspect::start_introspect_web_dashboard(CONFIG.clone());
+    let introspect_dash_addr = introspect::start_introspect_web_dashboard(get_config().clone());
 
     loop {
         let (restart_tx, mut restart_rx) = unbounded();
-        let wormhole = run_wormhole(CONFIG.clone(), introspect_dash_addr, restart_tx);
+        let wormhole = run_wormhole(get_config().clone(), introspect_dash_addr, restart_tx);
         let result = futures::future::select(Box::pin(wormhole), restart_rx.next()).await;
-        let mut first_run = FIRST_RUN.lock().await;
+        let mut first_run = get_first_run().lock().await;
         *first_run = false;
 
         match result {
@@ -73,7 +91,7 @@ async fn main() {
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
                 Error::AuthenticationFailed => {
-                    if CONFIG.secret_key.is_none() {
+                    if get_config().secret_key.is_none() {
                         eprintln!(
                             ">> {}",
                             "Please use an access key with the `--key` option".yellow()
@@ -204,7 +222,7 @@ async fn connect_to_wormhole(config: &Config) -> Result<Wormhole, Error> {
         ),
         None => {
             // if we have a reconnect token, use it.
-            if let Some(reconnect) = RECONNECT_TOKEN.lock().await.clone() {
+            if let Some(reconnect) = get_reconnect_token().lock().await.clone() {
                 ClientHello::reconnect(reconnect)
             } else {
                 ClientHello::generate(config.sub_domain.clone(), ClientType::Anonymous)
@@ -274,7 +292,7 @@ async fn process_control_flow_message(
             log::info!("got ping. reconnect_token={}", reconnect_token.is_some());
 
             if let Some(reconnect) = reconnect_token {
-                let _ = RECONNECT_TOKEN.lock().await.replace(reconnect.clone());
+                let _ = get_reconnect_token().lock().await.replace(reconnect.clone());
             }
             let _ = tunnel_tx.send(ControlPacket::Ping(None)).await;
         }
@@ -286,13 +304,13 @@ async fn process_control_flow_message(
             info!("got end stream [{:?}]", &stream_id);
 
             tokio::spawn(async move {
-                let stream = ACTIVE_STREAMS.read().unwrap().get(&stream_id).cloned();
+                let stream = get_active_streams().read().unwrap().get(&stream_id).cloned();
                 if let Some(mut tx) = stream {
                     tokio::time::sleep(Duration::from_secs(5)).await;
                     let _ = tx.send(StreamMessage::Close).await.map_err(|e| {
                         error!("failed to send stream close: {:?}", e);
                     });
-                    ACTIVE_STREAMS.write().unwrap().remove(&stream_id);
+                    get_active_streams().write().unwrap().remove(&stream_id);
                 }
             });
         }
@@ -303,7 +321,7 @@ async fn process_control_flow_message(
                 data.len()
             );
 
-            if !ACTIVE_STREAMS.read().unwrap().contains_key(stream_id)
+            if !get_active_streams().read().unwrap().contains_key(stream_id)
                 && local::setup_new_stream(config.clone(), tunnel_tx.clone(), stream_id.clone())
                     .await
                     .is_none()
@@ -312,7 +330,7 @@ async fn process_control_flow_message(
             }
 
             // find the right stream
-            let active_stream = ACTIVE_STREAMS.read().unwrap().get(stream_id).cloned();
+            let active_stream = get_active_streams().read().unwrap().get(stream_id).cloned();
 
             // forward data to it
             if let Some(mut tx) = active_stream {

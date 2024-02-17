@@ -5,6 +5,7 @@ use std::net::IpAddr;
 use std::str::FromStr;
 
 use serde::Deserialize;
+use tracing::info;
 use uuid::Uuid;
 
 #[derive(Deserialize, Debug)]
@@ -127,6 +128,7 @@ impl From<InternalConfig> for Config {
 
 impl Config {
     pub fn load_from_file(path: &str) -> Result<Config, Box<dyn Error>> {
+        info!("loading config from file: {}", path);
         let config = std::fs::read_to_string(path)?;
         let config: InternalConfig = toml::from_str(&config)?;
 
@@ -134,6 +136,7 @@ impl Config {
     }
 
     pub fn load_from_env() -> Config {
+        info!("loading config from ENV");
         let allowed_hosts = std::env::var("ALLOWED_HOSTS")
             .map(|s| s.split(',').map(String::from).collect())
             .unwrap_or_default();

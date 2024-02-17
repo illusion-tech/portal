@@ -5,6 +5,7 @@ use super::*;
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::StreamExt;
 use std::net::SocketAddr;
+use std::sync::OnceLock;
 use std::vec;
 use uuid::Uuid;
 use warp::Filter;
@@ -37,8 +38,10 @@ impl Request {
     }
 }
 
-lazy_static::lazy_static! {
-    pub static ref REQUESTS:Arc<RwLock<HashMap<String, Request>>> = Arc::new(RwLock::new(HashMap::new()));
+static REQUESTS: OnceLock<Arc<RwLock<HashMap<String, Request>>>> = OnceLock::new();
+
+pub fn get_requests() -> &'static Arc<RwLock<HashMap<String, Request>>> {
+    REQUESTS.get_or_init(|| Arc::new(RwLock::new(HashMap::new())))
 }
 
 pub fn start_introspect_web_dashboard(config: Config) -> SocketAddr {
@@ -180,7 +183,7 @@ async fn collect_stream(
         entire_request: collected_request,
     };
 
-    REQUESTS
+    get_requests()
         .write()
         .unwrap()
         .insert(stored_request.id.clone(), stored_request);
@@ -220,14 +223,14 @@ enum DataType {
 }
 
 async fn inspector() -> Result<Page<Inspector>, warp::reject::Rejection> {
-    let mut requests: Vec<Request> = REQUESTS.read().unwrap().values().cloned().collect();
+    let mut requests: Vec<Request> = get_requests().read().unwrap().values().cloned().collect();
     requests.sort_by(|a, b| b.completed.cmp(&a.completed));
     let inspect = Inspector { requests };
     Ok(Page(inspect))
 }
 
 async fn request_detail(rid: String) -> Result<Page<InspectorDetail>, warp::reject::Rejection> {
-    let request: Request = match REQUESTS.read().unwrap().get(&rid) {
+    let request: Request = match get_requests().read().unwrap().get(&rid) {
         Some(r) => r.clone(),
         None => return Err(warp::reject::not_found()),
     };
@@ -262,7 +265,7 @@ async fn replay_request(
     rid: String,
     config: Config,
 ) -> Result<Box<dyn warp::Reply>, warp::reject::Rejection> {
-    let request: Request = match REQUESTS.read().unwrap().get(&rid) {
+    let request: Request = match get_requests().read().unwrap().get(&rid) {
         Some(r) => r.clone(),
         None => return Err(warp::reject::not_found()),
     };
