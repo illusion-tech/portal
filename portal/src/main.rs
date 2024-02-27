@@ -72,7 +72,6 @@ pub enum StreamMessage {
 async fn main() {
     setup_panic!();
     let config = get_config();
-    pretty_env_logger::init();
     update::check().await;
 
     let introspect_dash_addr = introspect::start_introspect_web_dashboard(config.clone());

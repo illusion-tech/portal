@@ -96,6 +96,7 @@ impl Config {
         if config.verbose.unwrap_or(false) {
             std::env::set_var("RUST_LOG", "portal=debug");
         }
+        pretty_env_logger::init();
         Ok(Config::from(&mut config))
     }
 
