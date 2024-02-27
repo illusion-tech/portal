@@ -54,7 +54,7 @@ impl ServerHello {
 
     #[allow(unused)]
     pub fn prefixed_random_domain(prefix: &str) -> String {
-        format!("{}-{}", prefix, Self::random_domain())
+        format!("{}", prefix)
     }
 }
 
