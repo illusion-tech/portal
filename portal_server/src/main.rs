@@ -109,8 +109,8 @@ async fn main() {
     loop {
         let socket = match listener.accept().await {
             Ok((socket, _)) => socket,
-            _ => {
-                error!("failed to accept socket");
+            Err(e) => {
+                error!("failed to accept socket: {:?}", e);
                 continue;
             }
         };
