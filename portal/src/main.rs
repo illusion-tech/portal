@@ -84,16 +84,12 @@ async fn main() {
     // 添加一个新的异步任务，检查最后一次收到ping消息的时间
     tokio::spawn(async move {
         loop {
-            sleep(Duration::from_secs(30)).await;
+            sleep(Duration::from_secs(60)).await;
             let last_ping = *get_last_ping().lock().await;
             debug!("last_ping.elapsed()={:?}", last_ping.elapsed());
-            if last_ping.elapsed() > Duration::from_secs(30) {
+            if last_ping.elapsed() > Duration::from_secs(60) {
                 warn!("haven't received a ping in 60 seconds, restarting portal...");
-                std::process::Command::new("systemctl")
-                    .arg("restart")
-                    .arg("portal")
-                    .output()
-                    .expect("failed to execute process");
+                std::process::exit(1);
             }
         }
     });
