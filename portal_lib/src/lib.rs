@@ -144,7 +144,7 @@ pub enum ControlPacket {
     Ping(Option<ReconnectToken>),
 }
 
-pub const PING_INTERVAL: u64 = 30;
+pub const PING_INTERVAL: u64 = 5;
 
 const EMPTY_STREAM: StreamId = StreamId([0xF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 const TOKEN_STREAM: StreamId = StreamId([0xF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]);

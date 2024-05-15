@@ -28,8 +28,9 @@ pub use portal_lib::*;
 
 use clap::Parser;
 use futures::future::Either;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 
 pub type ActiveStreams = Arc<RwLock<HashMap<StreamId, UnboundedSender<StreamMessage>>>>;
 
@@ -38,6 +39,11 @@ static ACTIVE_STREAMS: OnceLock<ActiveStreams> = OnceLock::new();
 static RECONNECT_TOKEN: OnceLock<Arc<Mutex<Option<ReconnectToken>>>> = OnceLock::new();
 static CONFIG: OnceLock<Config> = OnceLock::new();
 static FIRST_RUN: OnceLock<Mutex<bool>> = OnceLock::new();
+static LAST_PING: OnceLock<Mutex<Instant>> = OnceLock::new();
+
+pub fn get_last_ping() -> &'static Mutex<Instant> {
+    LAST_PING.get_or_init(|| Mutex::new(Instant::now()))
+}
 
 pub fn get_cli() -> &'static Cli {
     CLI.get_or_init(Cli::parse)
@@ -75,6 +81,22 @@ async fn main() {
     update::check().await;
 
     let introspect_dash_addr = introspect::start_introspect_web_dashboard(config.clone());
+    // 添加一个新的异步任务，检查最后一次收到ping消息的时间
+    tokio::spawn(async move {
+        loop {
+            sleep(Duration::from_secs(30)).await;
+            let last_ping = *get_last_ping().lock().await;
+            debug!("last_ping.elapsed()={:?}", last_ping.elapsed());
+            if last_ping.elapsed() > Duration::from_secs(30) {
+                warn!("haven't received a ping in 60 seconds, restarting portal...");
+                std::process::Command::new("systemctl")
+                    .arg("restart")
+                    .arg("portal")
+                    .output()
+                    .expect("failed to execute process");
+            }
+        }
+    });
 
     loop {
         let (restart_tx, mut restart_rx) = unbounded();
@@ -288,6 +310,9 @@ async fn process_control_flow_message(
                     .replace(reconnect.clone());
             }
             let _ = tunnel_tx.send(ControlPacket::Ping(None)).await;
+
+            // 更新最后一次收到ping消息的时间
+            *get_last_ping().lock().await = Instant::now();
         }
         ControlPacket::Refused(_) => return Err("unexpected control packet".into()),
         ControlPacket::End(stream_id) => {
