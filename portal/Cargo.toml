@@ -16,8 +16,8 @@ path = "src/main.rs"
 portal_lib = {path = "../portal_lib"}
 
 askama = {version = "0.12", features = ["serde-json"]}
-bytes = "1"
 bunt = "0.2.8"
+bytes = "1"
 chrono = "0.4"
 clap = {version = "4", features = ["derive"]}
 cli-table = "0.4"
@@ -25,15 +25,15 @@ dirs = "5"
 futures = "0.3"
 http-body = "1.0"
 httparse = "1"
-human-panic = "1"
+human-panic = "2"
 indicatif = "0.17"
 log = "0.4"
 pretty_env_logger = "0.5"
-reqwest = {version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
+reqwest = {version = "0.12", default-features = false, features = ["json", "rustls-tls"]}
 semver = "1.0"
 thiserror = "1"
 tokio = {version = "1", features = ["full"]}
-tokio-rustls = "0.25.0"
+tokio-rustls = "0.26"
 tokio-tungstenite = {version = "0.21", features = ["rustls-tls-webpki-roots"]}
 tungstenite = {version = "0.21", default-features = false, features = ["rustls-tls-webpki-roots"]}
 uuid = {version = "1.7", features = ["serde", "v4"]}
