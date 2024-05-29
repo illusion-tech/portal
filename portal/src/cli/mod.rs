@@ -47,9 +47,20 @@ pub struct Cli {
     /// Sets the address of the local introspection dashboard
     #[arg(long = "dashboard-port")]
     pub dashboard_port: Option<u16>,
+
+    #[arg(short='e', long)]
+    pub is_exit: bool,
+
+    #[arg(short='f', long)]
+    pub enable_health_check: bool,
+
+    /// Set the interval for health check
+    #[arg(short = 'i', long, default_value = "20")]
+    pub health_check_interval: u64,
 }
 
 #[derive(Subcommand)]
+//设置API认证密钥
 pub enum Commands {
     /// Store the API Authentication key
     SetAuth {
@@ -58,12 +69,13 @@ pub enum Commands {
         key: String,
     },
 }
-
+//定义commands枚举，表示运行时cli界面
 pub struct CliInterface {
     spinner: ProgressBar,
     config: Config,
     introspect: SocketAddr,
 }
+//定义运行cli界面的行为界面，包含进度条，配置对象和地址
 impl CliInterface {
     pub fn start(config: Config, introspect: SocketAddr) -> Self {
         let msg = format!("Opening remote tunnel to {}", config.portal_url());
@@ -74,7 +86,7 @@ impl CliInterface {
             introspect,
         }
     }
-
+    //子域名获取
     fn get_sub_domain_notice(&self, sub_domain: &str) -> Option<String> {
         if self.config.sub_domain.is_some()
             && (self.config.sub_domain.as_deref() != Some(sub_domain))
@@ -88,7 +100,7 @@ impl CliInterface {
             None
         }
     }
-
+    //连接成功后返回的
     pub async fn did_connect(&self, sub_domain: &str, full_hostname: &str) {
         self.spinner.finish_with_message(
             "\x1b[32mSuccess! Remote tunnel is now open.\x1b[0m\n".to_string(),
@@ -137,7 +149,7 @@ impl CliInterface {
         }
     }
 }
-
+//进度条
 fn new_spinner(message: impl Into<Cow<'static, str>>) -> ProgressBar {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(150));

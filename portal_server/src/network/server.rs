@@ -29,6 +29,7 @@ pub struct HostQuery {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HostQueryResponse {
     pub client_id: Option<ClientId>,
+
 }
 
 fn handle_query(query: HostQuery) -> HostQueryResponse {

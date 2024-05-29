@@ -46,11 +46,7 @@ struct InternalConfig {
     /// The host on which we create tunnels on
     portal_host: Option<String>,
 
-    /// Whether to turn on health_check
-    enable_health_check:    Option<bool>,
 
-    /// health_check Interval
-    health_check_interval: Option<u64>,
 }
 
 /// Global service configuration
@@ -92,11 +88,6 @@ pub struct Config {
     /// The host on which we create tunnels on
     pub portal_host: String,
 
-    /// Whether to turn on health_check
-    pub(crate) enable_health_check: bool,
-
-    /// health_check Interval
-    pub(crate) health_check_interval: u64,
 }
 
 impl From<InternalConfig> for Config {
@@ -121,8 +112,7 @@ impl From<InternalConfig> for Config {
         let portal_host = config
             .portal_host
             .unwrap_or_else(|| "tunnelto.dev".to_string());
-        let enable_health_check = config.enable_health_check.unwrap_or(true);
-        let health_check_interval = config.health_check_interval.unwrap_or(60);
+
 
         Config {
             allowed_hosts,
@@ -136,8 +126,6 @@ impl From<InternalConfig> for Config {
             instance_id,
             blocked_ips,
             portal_host,
-            enable_health_check,
-            health_check_interval,
         }
     }
 }
@@ -184,14 +172,7 @@ impl Config {
             .unwrap_or_default();
 
         let portal_host = std::env::var("PORTAL_HOST").unwrap_or("portal.illusiontech.cn".to_string());
-        let health_check_interval = std::env::var("HEALTH_CHECK_INTERVAL")
-            .unwrap_or("20".to_string())
-            .parse::<u64>()
-            .unwrap_or(20);
 
-        let enable_health_check = std::env::var("ENABLE_HEALTH_CHECK")
-            .map(|s| s.parse::<bool>().unwrap_or(false))
-            .unwrap_or(false);
         Config {
             allowed_hosts,
             blocked_sub_domains,
@@ -204,8 +185,7 @@ impl Config {
             instance_id,
             blocked_ips,
             portal_host,
-            health_check_interval,
-            enable_health_check,
+
         }
     }
 }

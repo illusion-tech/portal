@@ -2,10 +2,14 @@ use super::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::io::{ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
+use tokio_tungstenite::{accept_hdr_async, WebSocketStream};
 use tracing::debug;
 use tracing::{error, Instrument};
+use tungstenite::handshake::server::{Request, Response};
+use url::quirks::host;
 
 /// Response Constants
+
 const HTTP_REDIRECT_RESPONSE:&[u8] = b"HTTP/1.1 301 Moved Permanently\r\nLocation: https://tunnelto.dev/\r\nContent-Length: 20\r\n\r\nhttps://tunnelto.dev";
 const HTTP_INVALID_HOST_RESPONSE: &[u8] =
     b"HTTP/1.1 400\r\nContent-Length: 23\r\n\r\nError: Invalid Hostname";
@@ -18,7 +22,9 @@ const HTTP_TUNNEL_REFUSED_RESPONSE: &[u8] =
 const HTTP_OK_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
 const HEALTH_CHECK_PATH: &[u8] = b"/0xDEADBEEF_HEALTH_CHECK";
 
+//异步函数，接收一个 TCP 流 incoming 并尝试连接本地控制服务器。在连接建立后，它会将数据从客户端流转发到控制服务器，并将控制服务器的响应数据转发回客户端
 async fn direct_to_control(mut incoming: TcpStream) {
+    //使用TcpStream::connect建立到本地服务器的连接，并用format组合给出控制服务器的地质，并使用control_port来获取配置文件的端口，await代表建立成功就进入ok否则进入Error
     let mut control_socket =
         match TcpStream::connect(format!("localhost:{}", get_config().control_port)).await {
             Ok(s) => s,
@@ -27,13 +33,13 @@ async fn direct_to_control(mut incoming: TcpStream) {
                 return;
             }
         };
-
+    //使用split方法将TcpStream对象分割为只读和只写两部分，来进行后续的读写操作
     let (mut control_r, mut control_w) = control_socket.split();
     let (mut incoming_r, mut incoming_w) = incoming.split();
-
+    // 创建两个异步任务，将数据从控制服务器流复制到客户端流，并且将数据从客户端流复制到服务器流
     let join_1 = tokio::io::copy(&mut control_r, &mut incoming_w);
     let join_2 = tokio::io::copy(&mut incoming_r, &mut control_w);
-
+    //同时运行两个异步任务
     match futures::future::join(join_1, join_2).await {
         (Ok(_), Ok(_)) => {}
         (Err(error), _) | (_, Err(error)) => {
@@ -43,9 +49,11 @@ async fn direct_to_control(mut incoming: TcpStream) {
 }
 
 #[tracing::instrument(skip(socket))]
+//异步函数，接收一个tcp流socket并处理传入的连接请求。
 pub async fn accept_connection(socket: TcpStream) {
     // peek the host of the http request
     // if health check, then handle it and return
+// 通过调用peek_http_request_host获取预读取主机信息的StreamWithPeekedHost既然钩体，读取成功解析并执行否则返回。
     let StreamWithPeekedHost {
         mut socket,
         host,
@@ -56,16 +64,18 @@ pub async fn accept_connection(socket: TcpStream) {
     };
 
     let config = get_config();
-
+    
+    // 健康检查
     tracing::info!(%host, %forwarded_for, "new remote connection");
     tracing::debug!("Allowed hosts: {}", config.allowed_hosts.join(", "));
 
     // parse the host string and find our client
-    if config.allowed_hosts.contains(&host) {
-        error!("redirect to homepage");
-        let _ = socket.write_all(HTTP_REDIRECT_RESPONSE).await;
-        return;
-    }
+    // 检查主机列表传入的主机是否被允许
+    // if !config.allowed_hosts.contains(&host) {
+    //     error!("redirect to homepage");
+    //     let _ = socket.write_all(HTTP_REDIRECT_RESPONSE).await;
+    //     return;
+    // }
     let host = match validate_host_prefix(&host) {
         Some(sub_domain) => sub_domain,
         None => {
@@ -75,13 +85,14 @@ pub async fn accept_connection(socket: TcpStream) {
         }
     };
 
-    // Special case -- we redirect this tcp connection to the control server
+    // 特殊情况下会重定向到控制服务器
     if host.as_str() == "wormhole" {
         direct_to_control(socket).await;
         return;
     }
 
     // find the client listening for this host
+    //如果都不符合的情况下，尝试寻找监听主机的客户端
     let client = match Connections::find_by_host(&host) {
         Some(client) => client.clone(),
         None => {
@@ -106,25 +117,31 @@ pub async fn accept_connection(socket: TcpStream) {
     };
 
     // allocate a new stream for this request
+    //创建新的ActiveStream，返回一个接收端queue_rx，用于从其他任务接收数据。
     let (active_stream, queue_rx) = ActiveStream::new(client.clone());
+    //获取新建活动流的ID
     let stream_id = active_stream.id.clone();
-
+    //用于记录调试日志
     tracing::debug!(
         stream_id = %active_stream.id.to_string(),
         "new stream connected"
     );
+    //split将socket分为stream和只写的sink两个部分
     let (stream, sink) = tokio::io::split(socket);
 
     // add our stream
+    //将新创建的活动流存储到活动流列表，后续可以根据ID查找和管理
     get_active_streams().insert(stream_id.clone(), active_stream.clone());
 
     // read from socket, write to client
+    //
     let span = observability::remote_trace("process_tcp_stream");
+    //创建异步任务，调用pross_tcp_stream来处理stream读取的数据，并将结果发送给对应客户端。
     tokio::spawn(
         async move {
             process_tcp_stream(active_stream, stream).await;
         }
-        .instrument(span),
+            .instrument(span),
     );
 
     // read from client, write to socket
@@ -133,14 +150,16 @@ pub async fn accept_connection(socket: TcpStream) {
         async move {
             tunnel_to_stream(host, stream_id, sink, queue_rx).await;
         }
-        .instrument(span),
+            .instrument(span),
     );
 }
 
+//验证主机前缀是否符合配置文件中允许的主机前缀，返回一个Option<string>类型的结果
 fn validate_host_prefix(host: &str) -> Option<String> {
+    //传入的字符串格式化成类似于url个是，后续解析
     let url = format!("http://{}", host);
     debug!(%url, "parsing host");
-
+    //解析url，获取主机部分的信息，并存储在host变量中。
     let host = match url::Url::parse(&url)
         .map(|u| u.host().map(|h| h.to_owned()))
         .unwrap_or(None)
@@ -151,7 +170,7 @@ fn validate_host_prefix(host: &str) -> Option<String> {
             return None;
         }
     };
-
+//将主机名按照点号拆分成片段，并存储在domain_segments中
     let domain_segments = host.split('.').collect::<Vec<&str>>();
     let prefix = &domain_segments[0];
     let remaining = &domain_segments[1..].join(".");
@@ -161,7 +180,7 @@ fn validate_host_prefix(host: &str) -> Option<String> {
     debug!(%host, %prefix, "parsed host");
     debug!(%prefix, %remaining, "parsed host");
     debug!(?config.allowed_hosts, "allowed hosts");
-
+//如果允许的主机前缀包含剩部分则返回
     if config.allowed_hosts.contains(remaining) {
         Some(prefix.to_string())
     } else {
@@ -169,21 +188,52 @@ fn validate_host_prefix(host: &str) -> Option<String> {
     }
 }
 
+
+
+//存储tcp流，主机名和转发信息
 struct StreamWithPeekedHost {
     socket: TcpStream,
     host: String,
     forwarded_for: String,
 }
+
+// async fn handle_connection(mut stream: WebSocketStream<TcpStream>) {
+//     while let Some(msg) = stream.next().await {
+//         match msg {
+//             Ok(Message::Text(txt)) => {
+//                 println!("Received a text msg: {}", txt);
+//                 stream.send(Message::Text("Hello WebSocket".into())).await.unwrap();
+//             },
+//             Ok(Message::Binary(bin)) => {
+//                 println!("Received a binary msg: {:?}", bin);
+//             },
+//             Ok(Message::Ping(ping)) => {
+//                 println!("Received a ping: {:?}", ping);
+//             },
+//             Ok(Message::Pong(pong)) => {
+//                 println!("Received a pong: {:?}", pong);
+//             },
+//             Ok(Message::Close(close_frame)) => {
+//                 println!("Received a close frame: {:?}", close_frame);
+//             },
+//             Err(e) => {
+//                 println!("Error processing message: {:?}", e);
+//             },
+//             _ => {},
+//         }
+//     }
+// }
+
 /// Filter incoming remote streams
 #[tracing::instrument(skip(socket))]
 async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeekedHost> {
     /// Note we return out if the host header is not found
     /// within the first 4kb of the request.
-    const MAX_HEADER_PEAK: usize = 4096;
-    let mut buf = vec![0; MAX_HEADER_PEAK]; //1kb
+    const MAX_HEADER_PEAK: usize = 4096;//最大预读4kb
+    let mut buf = vec![0; MAX_HEADER_PEAK]; //1kb的缓冲区
 
     tracing::debug!("checking stream headers");
-
+//通过socket.peek方法异步读取tcp流到缓冲区buf，返回读取的字节数，并使用match处理异步操作的结果
     let n = match socket.peek(&mut buf).await {
         Ok(n) => n,
         Err(e) => {
@@ -193,22 +243,55 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
     };
 
     // make sure we're not peeking the same header bytes
+    //无法预读头部信息，直接返回None
     if n == 0 {
         tracing::debug!("unable to peek header bytes");
         return None;
     }
 
     tracing::debug!("peeked {} stream bytes ", n);
-
+//headers数组存储HTTP头部信息，长度为64,req来解析HTTP请求的头部信息，并传入之前创建的headers数组
     let mut headers = [httparse::EMPTY_HEADER; 64]; // 30 seems like a generous # of headers
     let mut req = httparse::Request::new(&mut headers);
+    let upgrade_header = req
+        .headers
+        .iter()
+        .find(|h| h.name.eq_ignore_ascii_case("Upgrade"))
+        .and_then(|h| std::str::from_utf8(h.value).ok());
 
+    let connection_header = req
+        .headers
+        .iter()
+        .find(|h| h.name.eq_ignore_ascii_case("Connection"))
+        .and_then(|h| std::str::from_utf8(h.value).ok());
+
+    if let Some(Ok(host)) = req
+        .headers
+        .iter()
+        .filter(|h| h.name.to_lowercase() == *"host")
+        .map(|h| std::str::from_utf8(h.value))
+        .next()
+    {
+        if upgrade_header == Some("websocket") && connection_header == Some("Upgrade") {
+            // Perform the WebSocket handshake
+            let callback = |req: &Request, response: Response| {
+                println!("Received a WebSocket upgrade request: {:?}", req);
+                Ok(response)
+            };
+            let ws_stream = accept_hdr_async(socket, callback).await.unwrap();
+
+            return None;
+        tracing::info!(host=%host, path=%req.path.unwrap_or_default(), "peek request");
+    }
+}
+//解析预读取的数据，解析失败返回日志
     if let Err(e) = req.parse(&buf[..n]) {
         error!("failed to parse incoming http bytes: {:?}", e);
         return None;
     }
 
     // Handle the health check route
+//检查路径是否合理，是否是健康的路径
     if req.path.map(|s| s.as_bytes()) == Some(HEALTH_CHECK_PATH) {
         let _ = socket.write_all(HTTP_OK_RESPONSE).await.map_err(|e| {
             error!("failed to write health_check: {:?}", e);
@@ -218,6 +301,7 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
     }
 
     // get the ip addr in the header
+//从头部获取x-forwarded-for存储在forwarded_for中
     let forwarded_for = if let Some(Ok(forwarded_for)) = req
         .headers
         .iter()
@@ -231,6 +315,7 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
     };
 
     // look for a host header
+    //请求头中找到主机名host
     if let Some(Ok(host)) = req
         .headers
         .iter()
@@ -253,6 +338,7 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
 
 /// Process Messages from the control path in & out of the remote stream
 #[tracing::instrument(skip(tunnel_stream, tcp_stream))]
+//处理路径消息，远程的进出流
 async fn process_tcp_stream(mut tunnel_stream: ActiveStream, mut tcp_stream: ReadHalf<TcpStream>) {
     // send initial control stream init to client
     control_server::send_client_stream_init(tunnel_stream.clone()).await;
@@ -307,6 +393,7 @@ async fn process_tcp_stream(mut tunnel_stream: ActiveStream, mut tcp_stream: Rea
 }
 
 #[tracing::instrument(skip(sink, stream_id, queue))]
+//从接收器队列获取数据，然后将数据写入到TCP流中，指导队列结束或者错误
 async fn tunnel_to_stream(
     subdomain: String,
     stream_id: StreamId,
@@ -314,8 +401,9 @@ async fn tunnel_to_stream(
     mut queue: UnboundedReceiver<StreamMessage>,
 ) {
     loop {
+        //从队列异步获取下一个消息
         let result = queue.next().await;
-
+        //匹配处理从接收器队列获取的消息，根据消息内容做出相应的处理。没有消息就result设置为None
         let result = if let Some(message) = result {
             match message {
                 StreamMessage::Data(data) => Some(data),
@@ -333,7 +421,7 @@ async fn tunnel_to_stream(
         } else {
             None
         };
-
+    //根据处理的结果决定是否继续进行写入
         let data = match result {
             Some(data) => data,
             None => {
@@ -346,9 +434,9 @@ async fn tunnel_to_stream(
                 return;
             }
         };
-
+//数据写入tcp流，等待写入操作完成。
         let result = sink.write_all(&data).await;
-
+//检查写入是否有错
         if let Some(error) = result.err() {
             tracing::warn!(?error, "stream closed, disconnecting");
             return;
