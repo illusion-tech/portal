@@ -35,22 +35,3 @@ pub async fn proxy_stream(instance: Instance, mut stream: TcpStream) {
     )
         .await;
 }
-// 代理 WebSocket 连接
-// pub async fn proxy_websocket(instance: Instance, mut stream: WebSocketStream<TcpStream>) {
-//     let addr = SocketAddr::new(instance.ip, get_config().remote_port);
-//     match tokio_tungstenite::connect_async(addr).await {
-//         Ok((ws_stream, _)) => {
-//             let (mut ws_read, mut ws_write) = ws_stream.split();
-//             let (mut r_read, mut r_write) = stream.split();
-//             let _ = futures::future::join(
-//                 r_read.forward(ws_write),
-//                 ws_read.forward(r_write),
-//             )
-//                 .await;
-//         }
-//         Err(error) => {
-//             tracing::error!(?error, "Error connecting to instance");
-//             let _ = stream.send(Message::Text("Error: Error proxying tunnel".into())).await;
-//         }
-//     }
-// }

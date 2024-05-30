@@ -50,9 +50,7 @@ async fn direct_to_control(mut incoming: TcpStream) {
 
 #[tracing::instrument(skip(socket))]
 //异步函数，接收一个tcp流socket并处理传入的连接请求。
-pub async fn accept_connection(socket: TcpStream) {
-    // peek the host of the http request
-    // if health check, then handle it and return
+pub async fn accept_connection(mut socket: TcpStream) {
 // 通过调用peek_http_request_host获取预读取主机信息的StreamWithPeekedHost既然钩体，读取成功解析并执行否则返回。
     let StreamWithPeekedHost {
         mut socket,
@@ -71,11 +69,11 @@ pub async fn accept_connection(socket: TcpStream) {
 
     // parse the host string and find our client
     // 检查主机列表传入的主机是否被允许
-    // if !config.allowed_hosts.contains(&host) {
-    //     error!("redirect to homepage");
-    //     let _ = socket.write_all(HTTP_REDIRECT_RESPONSE).await;
-    //     return;
-    // }
+    if !config.allowed_hosts.contains(&host) {
+        error!("redirect to homepage");
+        let _ = socket.write_all(HTTP_REDIRECT_RESPONSE).await;
+        return;
+    }
     let host = match validate_host_prefix(&host) {
         Some(sub_domain) => sub_domain,
         None => {
@@ -84,7 +82,6 @@ pub async fn accept_connection(socket: TcpStream) {
             return;
         }
     };
-
     // 特殊情况下会重定向到控制服务器
     if host.as_str() == "wormhole" {
         direct_to_control(socket).await;
@@ -197,33 +194,6 @@ struct StreamWithPeekedHost {
     forwarded_for: String,
 }
 
-// async fn handle_connection(mut stream: WebSocketStream<TcpStream>) {
-//     while let Some(msg) = stream.next().await {
-//         match msg {
-//             Ok(Message::Text(txt)) => {
-//                 println!("Received a text msg: {}", txt);
-//                 stream.send(Message::Text("Hello WebSocket".into())).await.unwrap();
-//             },
-//             Ok(Message::Binary(bin)) => {
-//                 println!("Received a binary msg: {:?}", bin);
-//             },
-//             Ok(Message::Ping(ping)) => {
-//                 println!("Received a ping: {:?}", ping);
-//             },
-//             Ok(Message::Pong(pong)) => {
-//                 println!("Received a pong: {:?}", pong);
-//             },
-//             Ok(Message::Close(close_frame)) => {
-//                 println!("Received a close frame: {:?}", close_frame);
-//             },
-//             Err(e) => {
-//                 println!("Error processing message: {:?}", e);
-//             },
-//             _ => {},
-//         }
-//     }
-// }
-
 /// Filter incoming remote streams
 #[tracing::instrument(skip(socket))]
 async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeekedHost> {
@@ -251,87 +221,15 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
 
     tracing::debug!("peeked {} stream bytes ", n);
 //headers数组存储HTTP头部信息，长度为64,req来解析HTTP请求的头部信息，并传入之前创建的headers数组
-    let mut headers = [httparse::EMPTY_HEADER; 64]; // 30 seems like a generous # of headers
-    let mut req = httparse::Request::new(&mut headers);
-    let upgrade_header = req
-        .headers
-        .iter()
-        .find(|h| h.name.eq_ignore_ascii_case("Upgrade"))
-        .and_then(|h| std::str::from_utf8(h.value).ok());
 
-    let connection_header = req
-        .headers
-        .iter()
-        .find(|h| h.name.eq_ignore_ascii_case("Connection"))
-        .and_then(|h| std::str::from_utf8(h.value).ok());
+    let host = "test.portal.illusiontech.cn";
+    let forwarded_for = "";
 
-    if let Some(Ok(host)) = req
-        .headers
-        .iter()
-        .filter(|h| h.name.to_lowercase() == *"host")
-        .map(|h| std::str::from_utf8(h.value))
-        .next()
-    {
-        if upgrade_header == Some("websocket") && connection_header == Some("Upgrade") {
-            // Perform the WebSocket handshake
-            let callback = |req: &Request, response: Response| {
-                println!("Received a WebSocket upgrade request: {:?}", req);
-                Ok(response)
-            };
-            let ws_stream = accept_hdr_async(socket, callback).await.unwrap();
-
-            return None;
-        tracing::info!(host=%host, path=%req.path.unwrap_or_default(), "peek request");
-    }
-}
-//解析预读取的数据，解析失败返回日志
-    if let Err(e) = req.parse(&buf[..n]) {
-        error!("failed to parse incoming http bytes: {:?}", e);
-        return None;
-    }
-
-    // Handle the health check route
-//检查路径是否合理，是否是健康的路径
-    if req.path.map(|s| s.as_bytes()) == Some(HEALTH_CHECK_PATH) {
-        let _ = socket.write_all(HTTP_OK_RESPONSE).await.map_err(|e| {
-            error!("failed to write health_check: {:?}", e);
-        });
-
-        return None;
-    }
-
-    // get the ip addr in the header
-//从头部获取x-forwarded-for存储在forwarded_for中
-    let forwarded_for = if let Some(Ok(forwarded_for)) = req
-        .headers
-        .iter()
-        .filter(|h| h.name.to_lowercase() == *"x-forwarded-for")
-        .map(|h| std::str::from_utf8(h.value))
-        .next()
-    {
-        forwarded_for.to_string()
-    } else {
-        String::default()
-    };
-
-    // look for a host header
-    //请求头中找到主机名host
-    if let Some(Ok(host)) = req
-        .headers
-        .iter()
-        .filter(|h| h.name.to_lowercase() == *"host")
-        .map(|h| std::str::from_utf8(h.value))
-        .next()
-    {
-        tracing::info!(host=%host, path=%req.path.unwrap_or_default(), "peek request");
-
-        return Some(StreamWithPeekedHost {
-            socket,
-            host: host.to_string(),
-            forwarded_for,
-        });
-    }
-
+    return Some(StreamWithPeekedHost {
+        socket,
+        host: host.to_string(),
+        forwarded_for:forwarded_for.to_string(),
+    });
     tracing::info!("found no host header, dropping connection.");
     None
 }

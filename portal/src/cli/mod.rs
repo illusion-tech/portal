@@ -115,6 +115,7 @@ impl CliInterface {
             self.config.activation_url(full_hostname)
         );
         let forward_url = self.config.forward_url();
+        let ws_forward_url = self.config.ws_forward_url();
         let inspect = format!("\x1b[35mhttp://localhost:{}\x1b[0m", self.introspect.port());
 
         let table = vec![
@@ -135,6 +136,13 @@ impl CliInterface {
             vec![
                 "Forwarding traffic to".cell(),
                 forward_url
+                    .cell()
+                    .padding(Padding::builder().left(4).build())
+                    .justify(Justify::Left),
+            ],
+            vec![
+                "Forwarding traffic to".cell(),
+                ws_forward_url
                     .cell()
                     .padding(Padding::builder().left(4).build())
                     .justify(Justify::Left),
