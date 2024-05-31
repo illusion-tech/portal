@@ -28,7 +28,6 @@ struct InternalConfig {
     local_tls: Option<bool>,
     dashboard_port: Option<u16>,
     verbose: Option<bool>,
-    is_exit: Option<bool>,
     enable_health_check: Option<bool>,
     health_check_interval: Option<u64>,
 }
@@ -48,8 +47,6 @@ pub struct Config {
     pub secret_key: Option<SecretKey>,
     pub dashboard_port: u16,
     pub verbose: bool,
-
-    pub is_exit: bool,
     pub enable_health_check: bool,
     pub health_check_interval: u64,
 }
@@ -78,7 +75,6 @@ impl From<&mut InternalConfig> for Config {
         let secret_key = None.map(SecretKey);
         let dashboard_port = config.dashboard_port.unwrap_or(0);
         let verbose = config.verbose.unwrap_or(false);
-        let is_exit = config.is_exit.unwrap_or(true);
         let enable_health_check = config.enable_health_check.unwrap_or(true);
         let health_check_interval = config.health_check_interval.unwrap_or(60);
         Config {
@@ -94,7 +90,6 @@ impl From<&mut InternalConfig> for Config {
             secret_key,
             dashboard_port,
             verbose,
-            is_exit,
             enable_health_check,
             health_check_interval,
         }
@@ -161,7 +156,6 @@ impl Config {
             verbose: cli.verbose,
             secret_key: secret_key.map(SecretKey),
             portal_tls: !tls_off,
-            is_exit:cli.is_exit,
             health_check_interval:cli.health_check_interval,
             enable_health_check:cli.enable_health_check,
         })

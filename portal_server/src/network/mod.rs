@@ -93,52 +93,8 @@ impl Instance {
             _ => Err(Error::DoesNotServeHost),
         }
     }
-    // async fn serves_websocket_host(self, host: &str) -> Result<(Instance, ClientId), Error> {
-    //     let addr = SocketAddr::new(self.ip, get_config().internal_network_port);
-    //     let url = format!("ws://{}", addr);
-    //     let (mut ws_stream, _) = connect_async(url).await.map_err(|e| {
-    //         tracing::error!(error=?e, "failed to establish WebSocket connection");
-    //         e.into()
-    //     })?;
-    //
-    //     let request = WsMessage::Text(HostQuery { host: host.to_string() }.to_json()?);
-    //     ws_stream.send(request).await.map_err(|e| {
-    //         tracing::error!(error=?e, "failed to send a host query over WebSocket");
-    //         e.into()
-    //     })?;
-    //
-    //     let response = ws_stream
-    //         .try_next()
-    //         .await
-    //         .ok_or(Error::DoesNotServeHost)?
-    //         .map_err(|e| {
-    //             tracing::error!(error=?e, "failed to receive a response over WebSocket");
-    //             e.into()
-    //         })?;
-    //
-    //     if let WsMessage::Text(text) = response {
-    //         let result: HostQueryResponse = serde_json::from_str(&text)?;
-    //         let found_client = result.client_id.unwrap_or_default();
-    //
-    //         tracing::debug!("got WebSocket response: {:?}", result);
-    //         Ok((self, found_client))
-    //     }
-    // }
 }
-// pub async fn pywebsocket(instance: Instance,mut stream:WebSocketStream<TcpStream>){
-//     let url = format!("ws://{}:{}", instance.ip, get_config().remote_port);
-//     let (mut ws_stream) = match tokio_tungstenite::connect_async(url).await {
-//         Ok((stream, _)) => (stream),
-//     };
-//
-//     let (mut ws_read, mut ws_write) = ws_stream.split();
-//     let (mut r_read, mut r_write) = stream.split();
-//     let _ = futures::future::join(
-//         r_read.forward(ws_write),
-//         ws_read.forward(r_write),
-//     )
-//         .await;
-// }
+
 
 /// get the ip address we need to connect to that runs our host
 #[tracing::instrument]

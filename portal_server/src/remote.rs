@@ -220,8 +220,6 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
     }
 
     tracing::debug!("peeked {} stream bytes ", n);
-//headers数组存储HTTP头部信息，长度为64,req来解析HTTP请求的头部信息，并传入之前创建的headers数组
-
     let host = "test.portal.illusiontech.cn";
     let forwarded_for = "";
 

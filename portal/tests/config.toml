@@ -7,7 +7,5 @@ local_port = 8000
 local_tls = false
 verbose = true
 
-
-is_exit = true
 health_check_interval = 60
 enable_health_check = false

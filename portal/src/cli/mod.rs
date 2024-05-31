@@ -48,9 +48,6 @@ pub struct Cli {
     #[arg(long = "dashboard-port")]
     pub dashboard_port: Option<u16>,
 
-    #[arg(short='e', long)]
-    pub is_exit: bool,
-
     #[arg(short='f', long)]
     pub enable_health_check: bool,
 

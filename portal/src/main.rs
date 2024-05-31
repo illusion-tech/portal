@@ -82,37 +82,16 @@ async fn main() {
 
     let introspect_dash_addr = introspect::start_introspect_web_dashboard(config.clone());
     // 添加一个新的异步任务，检查最后一次收到ping消息的时间
-    if config.is_exit {
-    tokio::spawn(async move {
-        loop {
-            sleep(Duration::from_secs(60)).await;
-            let last_ping = *get_last_ping().lock().await;
-            debug!("last_ping.elapsed()={:?}", last_ping.elapsed());
-            if last_ping.elapsed() > Duration::from_secs(60) {
-                warn!("haven't received a ping in 60 seconds, restarting portal...");
-
-                    std::process::exit(1);
-
-            }
-        }
-    });
-    }
     let health_check_config = get_config();
     if health_check_config.enable_health_check{
-// 添加一个新的异步任务，检查最后一次收到ping消息的时间
     tokio::spawn(async move {
         loop {
-
                 sleep(Duration::from_secs(30)).await;
                 let last_ping = *get_last_ping().lock().await;
                 debug!("last_ping.elapsed: {:?}", last_ping.elapsed());
                 if last_ping.elapsed() >=Duration::from_secs(health_check_config.health_check_interval){
                     warn!("haven't received a ping in 60 seconds, restarting portal...");
-                    std::process::Command::new("systemctl")
-                        .arg("restart")
-                        .arg("portal_server")
-                        .output()
-                        .expect("failed to execute process");
+                    std::process::exit(1);
                 }
             }
     });}
