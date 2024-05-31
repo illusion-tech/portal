@@ -12,11 +12,19 @@ version = "0.1.20"
 name = "portal_server"
 path = "src/main.rs"
 
+[[bin]]
+name = "tcp_echo_server"
+path = "src/bin/tcp_echo_server.rs"
+
+[[bench]]
+name = "echo_server_bench"
+harness = false
+
 [dependencies]
 portal_lib = {path = "../portal_lib"}
 
 async-trait = "0.1"
-base64 = "0.21"
+base64 = "0.22"
 chrono = {version = "0.4", features = ["serde"]}
 clap = {version = "4", features = ["derive"]}
 dashmap = "5.5"
@@ -26,7 +34,7 @@ hmac-sha256 = "1"
 httparse = "1"
 pretty_env_logger = "0.5"
 rand = "0.8"
-reqwest = {version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
+reqwest = {version = "0.12", default-features = false, features = ["json", "rustls-tls"]}
 sha2 = "0.10"
 thiserror = "1"
 tokio = {version = "1", features = ["full"]}
@@ -41,5 +49,6 @@ toml = "0.8"
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
-tokio-tungstenite = "0.20.1"
-tungstenite = "0.20.1"
+
+[dev-dependencies]
+criterion = "0.5"
