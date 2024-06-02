@@ -17,14 +17,15 @@ name = "tcp_echo_server"
 path = "src/bin/tcp_echo_server.rs"
 
 [[bench]]
-name = "echo_server_bench"
 harness = false
+name = "echo_server_bench"
 
 [dependencies]
 portal_lib = {path = "../portal_lib"}
 
 async-trait = "0.1"
 base64 = "0.22"
+bytes = "1"
 chrono = {version = "0.4", features = ["serde"]}
 clap = {version = "4", features = ["derive"]}
 dashmap = "5.5"
@@ -52,3 +53,4 @@ tracing-subscriber = "0.3"
 
 [dev-dependencies]
 criterion = "0.5"
+tokio-test = "0.4"

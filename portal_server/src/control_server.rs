@@ -8,6 +8,7 @@ use std::time::Duration;
 use tracing::{error, info, warn, Instrument};
 use warp::Rejection;
 
+
 pub fn spawn<A: Into<SocketAddr>>(addr: A) {
     let health_check = warp::get().and(warp::path("health_check")).map(|| {
         tracing::debug!("Health Check #2 triggered");

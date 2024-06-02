@@ -65,7 +65,7 @@ Options:
 
 ## Testing Locally
 ```shell script
-# Run the Server: xpects TCP traffic on 8080 and control websockets on 5000
+# Run the Server: expects TCP traffic on 8080 and control websocket on 5000
 ALLOWED_HOSTS="localhost" cargo run --bin portal_server
 
 # Run a local portal client talking to your local portal_server
