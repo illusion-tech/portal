@@ -12,6 +12,8 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::stream::{SplitSink, SplitStream};
 
 mod connected_clients;
+mod client_manager;
+
 use self::connected_clients::*;
 mod active_stream;
 use self::active_stream::*;
@@ -22,6 +24,7 @@ pub use self::auth::client_auth;
 // pub use self::auth_db::AuthDbService;
 
 mod control_server;
+mod control_server_2;
 mod remote;
 
 mod config;
@@ -84,10 +87,18 @@ async fn main() {
     info!("starting server!");
 
     let config = get_config();
+    #[cfg(feature = "tcp_tunnel")]
+    {
+        control_server_2::spawn(([0, 0, 0, 0, 0, 0, 0, 0], config.control_port)).await;
+    }
 
-    control_server::spawn(([0, 0, 0, 0], config.control_port));
+    #[cfg(feature = "ws_tunnel")]
+    {
+        control_server::spawn(([0, 0, 0, 0, 0, 0, 0, 0], config.control_port));
+    }
+
     info!(
-        "started portal control server on 0.0.0.0:{}",
+        "started portal control server on [::]:{}",
         config.control_port
     );
 

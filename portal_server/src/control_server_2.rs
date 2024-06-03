@@ -1,9 +1,10 @@
 use core::net::SocketAddr;
 
-use portal_lib::{ClientHello, ClientId};
+use portal_lib::{ClientHello, ClientId, ControlPacket};
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
+    sync::mpsc::unbounded_channel,
 };
 use tracing::{debug, error, info};
 
@@ -35,6 +36,9 @@ pub async fn spawn<A: Into<SocketAddr>>(addr: A) {
 
 async fn handle_new_connection(socket: TcpStream) {
     try_client_handshake(socket).await;
+    let (tx, rx) = unbounded_channel::<ControlPacket>();
+
+    
 }
 
 async fn try_client_handshake<R>(mut socket: R) -> Option<()>

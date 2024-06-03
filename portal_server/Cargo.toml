@@ -20,6 +20,11 @@ path = "src/bin/tcp_echo_server.rs"
 harness = false
 name = "echo_server_bench"
 
+[features]
+default = ["tcp_tunnel"]
+tcp_tunnel = []
+ws_tunnel = []
+
 [dependencies]
 portal_lib = {path = "../portal_lib"}
 
