@@ -58,4 +58,70 @@ mod tests {
         let client = client_manager.clients.get(&"test".into()).unwrap();
         assert_eq!(client.id, "test".into());
     }
+
+    #[tokio::test]
+    async fn test_add_and_remove_client() {
+        let client_manager = ClientManager::instance();
+        assert!(client_manager.clients.is_empty());
+
+        let (tx, rx) = unbounded_channel();
+        let id: ClientId = "test".into();
+        let client = Client {
+            id: id.clone(),
+            tx,
+            rx,
+        };
+
+        client_manager.add(client);
+
+        assert_eq!(client_manager.clients.len(), 1);
+        assert!(client_manager.clients.contains_key(&id));
+
+        client_manager.remove(&id);
+
+        assert!(client_manager.clients.is_empty());
+        assert!(!client_manager.clients.contains_key(&id));
+    }
+
+    #[tokio::test]
+    async fn test_get_client() {
+        let client_manager = ClientManager::instance();
+        assert!(client_manager.clients.is_empty());
+
+        let (tx, rx) = unbounded_channel();
+        let id: ClientId = "test".into();
+        let client = Client {
+            id: id.clone(),
+            tx,
+            rx,
+        };
+
+        client_manager.add(client);
+
+        let retrieved_client = client_manager.get(&id);
+
+        assert!(retrieved_client.is_some());
+        assert_eq!(retrieved_client.unwrap().id, id);
+    }
+
+    #[tokio::test]
+    async fn test_get_nonexistent_client() {
+        let client_manager = ClientManager::instance();
+        assert!(client_manager.clients.is_empty());
+
+        let (tx, rx) = unbounded_channel();
+        let id: ClientId = "test".into();
+        let client = Client {
+            id: id.clone(),
+            tx,
+            rx,
+        };
+
+        client_manager.add(client);
+
+        let nonexistent_id: ClientId = "nonexistent".into();
+        let retrieved_client = client_manager.get(&nonexistent_id);
+
+        assert!(retrieved_client.is_none());
+    }
 }
