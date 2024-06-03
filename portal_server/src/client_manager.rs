@@ -1,11 +1,12 @@
 use std::sync::OnceLock;
 
-use dashmap::DashMap;
+use dashmap::{mapref::one::Ref, DashMap};
 use portal_lib::{ClientId, ControlPacket};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 static CLIENT_MANAGER: OnceLock<ClientManager> = OnceLock::new();
 
+// #[derive(Debug, Clone)]
 pub struct Client {
     pub id: ClientId,
     pub tx: UnboundedSender<ControlPacket>,
@@ -22,8 +23,16 @@ impl ClientManager {
         CLIENT_MANAGER.get_or_init(ClientManager::default)
     }
 
-    pub fn add(&mut self, client: Client) {
+    pub fn add(&self, client: Client) {
         self.clients.insert(client.id.clone(), client);
+    }
+
+    pub fn remove(&self, id: &ClientId) {
+        self.clients.remove(id);
+    }
+
+    pub fn get(&self, id: &ClientId) -> Option<Ref<ClientId, Client>> {
+        self.clients.get(id)
     }
 }
 
