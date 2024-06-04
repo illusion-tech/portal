@@ -1,3 +1,5 @@
+pub mod agent;
+
 use base64::{engine::general_purpose, Engine as _};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};

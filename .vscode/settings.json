@@ -9,6 +9,7 @@
         "illusiontech",
         "indicatif",
         "libhoney",
+        "mapref",
         "reqwest",
         "rusoto",
         "rusqlite",
