@@ -18,7 +18,7 @@ pub struct AgentHandshake {
     /// Authentication information for the Agent, can be a key or anonymous.
     auth: Auth,
     /// The version of the Agent software.
-    #[builder(setter(strip_option))]
+    #[builder(setter(strip_option, custom))]
     version: Option<Version>,
     /// Local network information of the Agent.
     #[builder(setter(strip_option))]
@@ -38,6 +38,13 @@ pub struct AgentHandshake {
 impl AgentHandshake {
     pub fn builder() -> AgentHandshakeBuilder {
         AgentHandshakeBuilder::default()
+    }
+}
+
+impl AgentHandshakeBuilder {
+    pub fn version(&mut self, version: &str) -> &mut Self {
+        self.version = Some(Some(version.parse().unwrap()));
+        self
     }
 }
 
@@ -68,6 +75,12 @@ pub enum Auth {
     /// Anonymous authentication.
     #[default]
     Anonymous,
+}
+
+impl From<&str> for Auth {
+    fn from(s: &str) -> Self {
+        Auth::Key(s.into())
+    }
 }
 
 /// Local network information of the Agent.
@@ -166,15 +179,15 @@ mod tests {
     #[test]
     fn test_agent_handshake_builder() {
         let handshake = AgentHandshake::builder()
-            .agent_id(AgentId("agent-123".into()))
-            .auth(Auth::Key("secret-key".into()))
-            .version("1.0.0".parse::<Version>().unwrap())
+            .agent_id("agent-123")
+            .auth("secret-key")
+            .version("1.0.0")
             .local_info(LocalInfo {
-                ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+                ip: Ipv4Addr::new(127, 0, 0, 1).into(),
                 port: 8080,
             })
             .service_info(ServiceInfo {
-                target_ip: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
+                target_ip: Ipv4Addr::new(192, 168, 0, 1).into(),
                 target_port: 9000,
             })
             .encryption(Encryption {
