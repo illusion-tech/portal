@@ -1,25 +1,33 @@
-use core::net::IpAddr;
+use core::net::{IpAddr, Ipv4Addr};
 
+use base64::{engine::general_purpose, Engine};
 use derive_builder::Builder;
+use rand::prelude::*;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 
 /// The handshake message structure used by an Agent to communicate with the Server.
-#[derive(Builder, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[builder(try_setter, setter(into))]
+#[derive(Builder, Default, Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[builder(default, try_setter, setter(into))]
 pub struct AgentHandshake {
     /// Unique identifier for the Agent.
     agent_id: AgentId,
     /// Name of the Agent.
+    #[builder(setter(strip_option))]
     agent_name: Option<String>,
     /// Authentication information for the Agent, can be a key or anonymous.
     auth: Auth,
     /// The version of the Agent software.
-    version: String,
+    #[builder(setter(strip_option))]
+    version: Option<Version>,
     /// Local network information of the Agent.
-    local_info: LocalInfo,
+    #[builder(setter(strip_option))]
+    local_info: Option<LocalInfo>,
     /// Information about the service the Agent is providing or connecting to.
-    service_info: ServiceInfo,
+    #[builder(setter(strip_option))]
+    service_info: Option<ServiceInfo>,
     /// Encryption information for secure communication.
+    #[builder(setter(strip_option))]
     encryption: Option<Encryption>,
     /// Interval in milliseconds for the Agent to send a heartbeat message.
     heartbeat_interval: u32,
@@ -44,12 +52,21 @@ impl From<&str> for AgentId {
     }
 }
 
+impl Default for AgentId {
+    fn default() -> Self {
+        let mut id = [0u8; 32];
+        rand::thread_rng().fill_bytes(&mut id);
+        AgentId(general_purpose::URL_SAFE_NO_PAD.encode(id))
+    }
+}
+
 /// Authentication information for the Agent.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub enum Auth {
     /// Authentication using a secret key.
     Key(String),
     /// Anonymous authentication.
+    #[default]
     Anonymous,
 }
 
@@ -62,6 +79,15 @@ pub struct LocalInfo {
     port: u16,
 }
 
+impl Default for LocalInfo {
+    fn default() -> Self {
+        LocalInfo {
+            ip: Ipv4Addr::new(127, 0, 0, 1).into(),
+            port: 8080,
+        }
+    }
+}
+
 /// Information about the service the Agent is providing or connecting to.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ServiceInfo {
@@ -69,6 +95,15 @@ pub struct ServiceInfo {
     target_ip: IpAddr,
     /// Port of the target service.
     target_port: u16,
+}
+
+impl Default for ServiceInfo {
+    fn default() -> Self {
+        ServiceInfo {
+            target_ip: Ipv4Addr::new(127, 0, 0, 1).into(),
+            target_port: 8080,
+        }
+    }
 }
 
 /// Encryption information for secure communication.
@@ -88,21 +123,21 @@ mod tests {
 
     #[test]
     fn test_agent_handshake_serialization() {
-        let agent_id = AgentId("agent-123".to_string());
+        let agent_id = "agent-123".into();
         let agent_name = None;
-        let auth = Auth::Key("secret-key".to_string());
-        let version = "1.0.0".to_string();
-        let local_info = LocalInfo {
-            ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+        let auth = Auth::Key("secret-key".into());
+        let version = Some("1.0.0".parse::<Version>().unwrap());
+        let local_info = Some(LocalInfo {
+            ip: Ipv4Addr::new(127, 0, 0, 1).into(),
             port: 8080,
-        };
-        let service_info = ServiceInfo {
-            target_ip: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
+        });
+        let service_info = Some(ServiceInfo {
+            target_ip: Ipv4Addr::new(192, 168, 0, 1).into(),
             target_port: 9000,
-        };
+        });
         let encryption = Some(Encryption {
-            method: "AES-256".to_string(),
-            key: "encryption-key".to_string(),
+            method: "AES-256".into(),
+            key: "encryption-key".into(),
         });
         let heartbeat_interval = 5000;
         let timestamp = 1631234567890;
@@ -131,9 +166,9 @@ mod tests {
     #[test]
     fn test_agent_handshake_builder() {
         let handshake = AgentHandshake::builder()
-            .agent_id(AgentId("agent-123".to_string()))
-            .auth(Auth::Key("secret-key".to_string()))
-            .version("1.0.0".to_string())
+            .agent_id(AgentId("agent-123".into()))
+            .auth(Auth::Key("secret-key".into()))
+            .version("1.0.0".parse::<Version>().unwrap())
             .local_info(LocalInfo {
                 ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
                 port: 8080,
@@ -142,15 +177,21 @@ mod tests {
                 target_ip: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
                 target_port: 9000,
             })
-            .encryption(Some(Encryption {
-                method: "AES-256".to_string(),
-                key: "encryption-key".to_string(),
-            }))
+            .encryption(Encryption {
+                method: "AES-256".into(),
+                key: "encryption-key".into(),
+            })
             .heartbeat_interval(5000u32)
             .timestamp(1631234567890u64)
             .build()
             .unwrap();
 
         assert_eq!(handshake.agent_id.0, "agent-123");
+    }
+
+    #[test]
+    fn test_builder_with_default() {
+        let handshake = AgentHandshake::builder().build().unwrap();
+        println!("{:?}", handshake);
     }
 }
