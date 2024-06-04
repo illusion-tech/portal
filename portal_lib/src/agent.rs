@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 pub struct AgentHandshake {
     /// Unique identifier for the Agent.
     agent_id: AgentId,
+    /// Name of the Agent.
+    agent_name: Option<String>,
     /// Authentication information for the Agent, can be a key or anonymous.
     auth: Auth,
     /// The version of the Agent software.
@@ -32,9 +34,15 @@ impl AgentHandshake {
 }
 
 /// Unique identifier for an Agent.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct AgentId(String);
+
+impl From<&str> for AgentId {
+    fn from(s: &str) -> Self {
+        AgentId(s.into())
+    }
+}
 
 /// Authentication information for the Agent.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -81,6 +89,7 @@ mod tests {
     #[test]
     fn test_agent_handshake_serialization() {
         let agent_id = AgentId("agent-123".to_string());
+        let agent_name = None;
         let auth = Auth::Key("secret-key".to_string());
         let version = "1.0.0".to_string();
         let local_info = LocalInfo {
@@ -100,6 +109,7 @@ mod tests {
 
         let handshake = AgentHandshake {
             agent_id,
+            agent_name,
             auth,
             version,
             local_info,
@@ -111,6 +121,9 @@ mod tests {
 
         let serialized = serde_json::to_string(&handshake).unwrap();
         let deserialized: AgentHandshake = serde_json::from_str(&serialized).unwrap();
+
+        println!("{} - {}", serialized.len(), serialized);
+        println!("{:?}", deserialized);
 
         assert_eq!(handshake, deserialized);
     }

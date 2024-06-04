@@ -12,7 +12,7 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::stream::{SplitSink, SplitStream};
 
 mod connected_clients;
-mod client_manager;
+mod agent_manager;
 
 use self::connected_clients::*;
 mod active_stream;
