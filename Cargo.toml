@@ -2,13 +2,13 @@
 resolver = "2"
 
 members = [
-    "portal_lib",
-    "portal",
-    "portal_server",
+  "portal_lib",
+  "portal",
+  "portal_server",
 ]
 
 exclude = [
-    "portal_proxy"
+  "portal_proxy",
 ]
 
 [profile.dev]
