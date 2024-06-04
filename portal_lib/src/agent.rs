@@ -1,9 +1,11 @@
 use core::net::IpAddr;
 
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 /// The handshake message structure used by an Agent to communicate with the Server.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Builder, Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[builder(try_setter, setter(into))]
 pub struct AgentHandshake {
     /// Unique identifier for the Agent.
     agent_id: AgentId,
@@ -21,6 +23,12 @@ pub struct AgentHandshake {
     heartbeat_interval: u32,
     /// Timestamp of the handshake message.
     timestamp: u64,
+}
+
+impl AgentHandshake {
+    pub fn builder() -> AgentHandshakeBuilder {
+        AgentHandshakeBuilder::default()
+    }
 }
 
 /// Unique identifier for an Agent.
@@ -105,5 +113,31 @@ mod tests {
         let deserialized: AgentHandshake = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(handshake, deserialized);
+    }
+
+    #[test]
+    fn test_agent_handshake_builder() {
+        let handshake = AgentHandshake::builder()
+            .agent_id(AgentId("agent-123".to_string()))
+            .auth(Auth::Key("secret-key".to_string()))
+            .version("1.0.0".to_string())
+            .local_info(LocalInfo {
+                ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+                port: 8080,
+            })
+            .service_info(ServiceInfo {
+                target_ip: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
+                target_port: 9000,
+            })
+            .encryption(Some(Encryption {
+                method: "AES-256".to_string(),
+                key: "encryption-key".to_string(),
+            }))
+            .heartbeat_interval(5000u32)
+            .timestamp(1631234567890u64)
+            .build()
+            .unwrap();
+
+        assert_eq!(handshake.agent_id.0, "agent-123");
     }
 }
