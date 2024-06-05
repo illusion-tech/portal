@@ -30,6 +30,7 @@ struct InternalConfig {
     verbose: Option<bool>,
     enable_health_check: Option<bool>,
     health_check_interval: Option<u64>,
+    local_port_two: Option<u16>,
 }
 
 /// Config
@@ -43,6 +44,8 @@ pub struct Config {
     pub local_host: String,
     pub local_port: u16,
     pub local_addr: SocketAddr,
+    pub local_port_two:u16,
+    pub local_addr_two:SocketAddr,
     pub sub_domain: Option<String>,
     pub secret_key: Option<SecretKey>,
     pub dashboard_port: u16,
@@ -63,9 +66,14 @@ impl From<&mut InternalConfig> for Config {
             .unwrap()
             .next()
             .unwrap();
+        let local_port_two = config.local_port_two.unwrap_or(8081);
+        let local_addr_two = (local_host.as_str(), local_port_two)
+            .to_socket_addrs()
+            .unwrap()
+            .next()
+            .unwrap();
         let local_tls = config.local_tls.unwrap_or(false);
-
-        let portal_tls = config.portal_tls.unwrap_or(false);
+        let portal_tls = config.portal_tls.unwrap_or(true);
         // let portal_schema = if portal_tls { "wss" } else { "ws" };
         let portal_host = config
             .portal_host
@@ -83,6 +91,8 @@ impl From<&mut InternalConfig> for Config {
             local_host,
             local_port,
             local_addr,
+            local_port_two,
+            local_addr_two,
             local_tls,
             portal_host,
             portal_port,
@@ -135,7 +145,23 @@ impl Config {
                     cli.port
                 )
             })?;
-
+        let local_addr_two = (cli.local_host.as_str(), cli.port_two)
+            .to_socket_addrs()
+            .map_err(|_| {
+                error!(
+                    "Failed to resolve local address: {}:{}",
+                    cli.local_host.as_str(),
+                    cli.port_two
+                )
+            })?
+            .next()
+            .ok_or_else(|| {
+                error!(
+                    "No IP addresses found for: {}:{}",
+                    cli.local_host.as_str(),
+                    cli.port_two
+                )
+            })?;
         // get the host url
         let tls_off = env::var(TLS_OFF_ENV).is_ok();
         let portal_host = env::var(HOST_ENV).unwrap_or(DEFAULT_CONTROL_HOST.to_string());
@@ -151,6 +177,8 @@ impl Config {
             local_port: cli.port,
             local_tls: cli.use_tls,
             local_addr,
+            local_port_two: cli.port_two,
+            local_addr_two,
             sub_domain,
             dashboard_port: cli.dashboard_port.unwrap_or(0),
             verbose: cli.verbose,

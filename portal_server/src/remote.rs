@@ -1,11 +1,9 @@
 use super::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::io::{ReadHalf, WriteHalf};
-use tokio::net::TcpStream;
-use tokio_tungstenite::{accept_hdr_async, WebSocketStream};
+use tokio::net::{TcpSocket, TcpStream};
 use tracing::debug;
 use tracing::{error, Instrument};
-use tungstenite::handshake::server::{Request, Response};
 use url::quirks::host;
 
 /// Response Constants
@@ -125,7 +123,6 @@ pub async fn accept_connection(mut socket: TcpStream) {
     );
     //split将socket分为stream和只写的sink两个部分
     let (stream, sink) = tokio::io::split(socket);
-
     // add our stream
     //将新创建的活动流存储到活动流列表，后续可以根据ID查找和管理
     get_active_streams().insert(stream_id.clone(), active_stream.clone());
@@ -138,16 +135,15 @@ pub async fn accept_connection(mut socket: TcpStream) {
         async move {
             process_tcp_stream(active_stream, stream).await;
         }
-            .instrument(span),
+            .instrument(span.clone()),
     );
-
     // read from client, write to socket
     let span = observability::remote_trace("tunnel_to_stream");
     tokio::spawn(
         async move {
             tunnel_to_stream(host, stream_id, sink, queue_rx).await;
         }
-            .instrument(span),
+            .instrument(span.clone()),
     );
 }
 
@@ -229,7 +225,7 @@ async fn peek_http_request_host(mut socket: TcpStream) -> Option<StreamWithPeeke
         forwarded_for:forwarded_for.to_string(),
     });
     tracing::info!("found no host header, dropping connection.");
-    None
+
 }
 
 /// Process Messages from the control path in & out of the remote stream
@@ -241,7 +237,6 @@ async fn process_tcp_stream(mut tunnel_stream: ActiveStream, mut tcp_stream: Rea
 
     // now read from stream and forward to clients
     let mut buf = [0; 1024];
-
     loop {
         // client is no longer connected
         if Connections::get(&tunnel_stream.client.id).is_none() {

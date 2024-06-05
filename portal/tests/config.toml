@@ -1,11 +1,12 @@
 sub_domain = 'test'
-#portal_host = 'portal.illusiontech.cn'
-#portal_port = 5000
+#portal_host = '121.37.100.169'
+#portal_port =  5000
 portal_tls = false
 local_host = 'localhost'
 local_port = 8000
+local_port_two = 8081
 local_tls = false
 verbose = true
 
 health_check_interval = 60
-enable_health_check = false
+enable_health_check = true

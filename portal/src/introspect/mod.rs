@@ -281,11 +281,19 @@ async fn replay_request(
         }
     });
 
-    let tx = local::setup_new_stream(config, tx, StreamId::generate()).await;
+    let tcp_tx = local::setup_new_stream(config.clone(), tx.clone(), StreamId::generate()).await;
+    let new_tx = local::setup_new_stream_new(config, tx, StreamId::generate()).await;
 
-    // send the data to the stream
-    if let Some(mut tx) = tx {
-        let _ = tx.send(StreamMessage::Data(request.entire_request)).await;
+// send the data to the stream
+    if let Some(mut tcp_tx) = tcp_tx {
+        let _ = tcp_tx.send(StreamMessage::Data(request.entire_request.clone())).await;
+    } else {
+        error!("failed to replay request: local tunnel could not connect");
+        return Err(warp::reject::not_found());
+    }
+
+    if let Some(mut ws_tx) = new_tx {
+        let _ = ws_tx.send(StreamMessage::Data(request.entire_request)).await;
     } else {
         error!("failed to replay request: local tunnel could not connect");
         return Err(warp::reject::not_found());

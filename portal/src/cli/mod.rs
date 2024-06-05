@@ -44,6 +44,10 @@ pub struct Cli {
     #[arg(short, long, default_value = "8000")]
     pub port: u16,
 
+    /// Sets the port to forward incoming portal traffic to on the target host
+    #[arg(short='a', long, default_value = "8081")]
+    pub port_two: u16,
+
     /// Sets the address of the local introspection dashboard
     #[arg(long = "dashboard-port")]
     pub dashboard_port: Option<u16>,
@@ -133,13 +137,6 @@ impl CliInterface {
             vec![
                 "Forwarding traffic to".cell(),
                 forward_url
-                    .cell()
-                    .padding(Padding::builder().left(4).build())
-                    .justify(Justify::Left),
-            ],
-            vec![
-                "Forwarding traffic to".cell(),
-                ws_forward_url
                     .cell()
                     .padding(Padding::builder().left(4).build())
                     .justify(Justify::Left),

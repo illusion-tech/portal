@@ -10,10 +10,6 @@ use crate::network::server::{HostQuery, HostQueryResponse};
 use crate::{get_config, ClientId};
 use reqwest::StatusCode;
 use tokio::net::TcpStream;
-use tokio_tungstenite::tungstenite::protocol::Message;
-use tokio_tungstenite::tungstenite::Message as WsMessage;
-use tokio_tungstenite::tungstenite::error::Error as WsError;
-use tokio_tungstenite::{connect_async, WebSocketStream};
 use trust_dns_resolver::TokioAsyncResolver;
 use crate::control_server::{SinkExt, StreamExt};
 
@@ -34,7 +30,7 @@ pub enum Error {
 }
 
 /// An instance of our server
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Instance {
     pub ip: IpAddr,
 }

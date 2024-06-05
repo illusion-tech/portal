@@ -7,11 +7,7 @@ use reqwest::StatusCode;
 use trust_dns_resolver::TokioAsyncResolver;
 use futures::{FutureExt, SinkExt, StreamExt};
 use tokio::net::TcpStream;
-use tokio_tungstenite::tungstenite::protocol::Message;
-use tokio_tungstenite::tungstenite::error::Error as WsError;
-use tokio_tungstenite::accept_async;
 use tokio::sync::broadcast;
-use tokio_tungstenite::WebSocketStream;
 const HTTP_ERROR_PROXYING_TUNNEL_RESPONSE: &[u8] =
     b"HTTP/1.1 500\r\nContent-Length: 28\r\n\r\nError: Error proxying tunnel";
 

@@ -5,7 +5,7 @@ allowed_hosts = [
   'portal.illusiontech.cn',
 ]
 
-portal_host = 'portal.illusiontech.cn'
+portal_host = 'localhost' #网络ip
 remote_port = 8080
 local_port = 8000
 

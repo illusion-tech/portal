@@ -90,7 +90,7 @@ async fn main() {
                 let last_ping = *get_last_ping().lock().await;
                 debug!("last_ping.elapsed: {:?}", last_ping.elapsed());
                 if last_ping.elapsed() >=Duration::from_secs(health_check_config.health_check_interval){
-                    warn!("haven't received a ping in 60 seconds, restarting portal...");
+                    warn!("haven't received a ping in 60 seconds, exit portal...");
                     std::process::exit(1);
                 }
             }
@@ -341,14 +341,14 @@ async fn process_control_flow_message(
                 data.len()
             );
 
-            if !get_active_streams().read().unwrap().contains_key(stream_id)
-                && local::setup_new_stream(config.clone(), tunnel_tx.clone(), stream_id.clone())
-                    .await
-                    .is_none()
-            {
-                error!("failed to open local tunnel")
-            }
+            if !get_active_streams().read().unwrap().contains_key(stream_id) {
+                let ws_result = local::setup_new_stream_new(config.clone(), tunnel_tx.clone(), stream_id.clone()).await;
+                let tcp_result = local::setup_new_stream(config.clone(), tunnel_tx.clone(), stream_id.clone()).await;
 
+                if ws_result.is_none() && tcp_result.is_none() {
+                    error!("failed to open local tunnel")
+                }
+            }
             // find the right stream
             let active_stream = get_active_streams().read().unwrap().get(stream_id).cloned();
 

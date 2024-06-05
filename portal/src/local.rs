@@ -33,7 +33,6 @@ pub async fn setup_new_stream(
             return None;
         }
     };
-
     let local_tcp: Box<dyn AnyTcpStream> = if config.local_tls {
         let dns_name = config.local_host;
         let mut root_store = RootCertStore::empty();
@@ -68,6 +67,77 @@ pub async fn setup_new_stream(
     } = introspect_stream();
 
     let (stream, sink) = split(local_tcp);
+
+    // Read local tcp bytes, send them tunnel
+    let stream_id_clone = stream_id.clone();
+    tokio::spawn(async move {
+        process_local_tcp(stream, tunnel_tx, stream_id_clone, introspect_response).await;
+    });
+
+    // Forward remote packets to local tcp
+    let (tx, rx) = unbounded();
+    get_active_streams()
+        .write()
+        .unwrap()
+        .insert(stream_id.clone(), tx.clone());
+
+    tokio::spawn(async move {
+        forward_to_local_tcp(sink, rx, introspect_request).await;
+    });
+
+    Some(tx)
+}
+pub async fn setup_new_stream_new(
+    config: Config,
+    mut tunnel_tx: UnboundedSender<ControlPacket>,
+    stream_id: StreamId,
+) -> Option<UnboundedSender<StreamMessage>> {
+    info!("setting up local stream: {}", &stream_id.to_string());
+    debug!("connecting to local service: {:?}", config.local_addr_two);
+    let local_tcp_two = match TcpStream::connect(config.local_addr_two).await {
+        Ok(s) => s,
+        Err(e) => {
+            error!("failed to connect to local service: {}", e);
+            introspect::connect_failed();
+            let _ = tunnel_tx.send(ControlPacket::Refused(stream_id)).await;
+            return None;
+        }
+    };
+    debug!("connecting to local service: {:?}", config.local_addr_two);
+    let local_tcp_two: Box<dyn AnyTcpStream> = if config.local_tls {
+        let dns_name = config.local_host;
+        let mut root_store = RootCertStore::empty();
+
+        root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+        let config = ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth();
+
+        let config = TlsConnector::from(Arc::new(config));
+        let dns_name = ServerName::try_from(dns_name).ok()?;
+
+        let stream = match config.connect(dns_name, local_tcp_two).await {
+            Ok(s) => s,
+            Err(e) => {
+                error!("failed to connect to TLS service: {}", e);
+                introspect::connect_failed();
+                let _ = tunnel_tx.send(ControlPacket::Refused(stream_id)).await;
+                return None;
+            }
+        };
+
+        Box::new(stream)
+    } else {
+        Box::new(local_tcp_two)
+    };
+
+    let IntrospectChannels {
+        request: introspect_request,
+        response: introspect_response,
+    } = introspect_stream();
+
+    let (stream, sink) = split(local_tcp_two);
 
     // Read local tcp bytes, send them tunnel
     let stream_id_clone = stream_id.clone();
