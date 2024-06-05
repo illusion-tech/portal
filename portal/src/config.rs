@@ -28,6 +28,9 @@ struct InternalConfig {
     local_tls: Option<bool>,
     dashboard_port: Option<u16>,
     verbose: Option<bool>,
+    enable_health_check: Option<bool>,
+    health_check_interval: Option<u64>,
+    local_port_two: Option<u16>,
 }
 
 /// Config
@@ -41,10 +44,14 @@ pub struct Config {
     pub local_host: String,
     pub local_port: u16,
     pub local_addr: SocketAddr,
+    pub local_port_two:u16,
+    pub local_addr_two:SocketAddr,
     pub sub_domain: Option<String>,
     pub secret_key: Option<SecretKey>,
     pub dashboard_port: u16,
     pub verbose: bool,
+    pub enable_health_check: bool,
+    pub health_check_interval: u64,
 }
 
 impl From<&mut InternalConfig> for Config {
@@ -59,10 +66,15 @@ impl From<&mut InternalConfig> for Config {
             .unwrap()
             .next()
             .unwrap();
+        let local_port_two = config.local_port_two.unwrap_or(8081);
+        let local_addr_two = (local_host.as_str(), local_port_two)
+            .to_socket_addrs()
+            .unwrap()
+            .next()
+            .unwrap();
         let local_tls = config.local_tls.unwrap_or(false);
-
-        let portal_tls = config.portal_tls.unwrap_or(false);
-        let portal_schema = if portal_tls { "wss" } else { "ws" };
+        let portal_tls = config.portal_tls.unwrap_or(true);
+        // let portal_schema = if portal_tls { "wss" } else { "ws" };
         let portal_host = config
             .portal_host
             .take()
@@ -71,13 +83,16 @@ impl From<&mut InternalConfig> for Config {
         let secret_key = None.map(SecretKey);
         let dashboard_port = config.dashboard_port.unwrap_or(0);
         let verbose = config.verbose.unwrap_or(false);
-
+        let enable_health_check = config.enable_health_check.unwrap_or(true);
+        let health_check_interval = config.health_check_interval.unwrap_or(60);
         Config {
             client_id: ClientId::generate(),
             sub_domain: config.sub_domain.take(),
             local_host,
             local_port,
             local_addr,
+            local_port_two,
+            local_addr_two,
             local_tls,
             portal_host,
             portal_port,
@@ -85,6 +100,8 @@ impl From<&mut InternalConfig> for Config {
             secret_key,
             dashboard_port,
             verbose,
+            enable_health_check,
+            health_check_interval,
         }
     }
 }
@@ -128,7 +145,23 @@ impl Config {
                     cli.port
                 )
             })?;
-
+        let local_addr_two = (cli.local_host.as_str(), cli.port_two)
+            .to_socket_addrs()
+            .map_err(|_| {
+                error!(
+                    "Failed to resolve local address: {}:{}",
+                    cli.local_host.as_str(),
+                    cli.port_two
+                )
+            })?
+            .next()
+            .ok_or_else(|| {
+                error!(
+                    "No IP addresses found for: {}:{}",
+                    cli.local_host.as_str(),
+                    cli.port_two
+                )
+            })?;
         // get the host url
         let tls_off = env::var(TLS_OFF_ENV).is_ok();
         let portal_host = env::var(HOST_ENV).unwrap_or(DEFAULT_CONTROL_HOST.to_string());
@@ -144,11 +177,15 @@ impl Config {
             local_port: cli.port,
             local_tls: cli.use_tls,
             local_addr,
+            local_port_two: cli.port_two,
+            local_addr_two,
             sub_domain,
             dashboard_port: cli.dashboard_port.unwrap_or(0),
             verbose: cli.verbose,
             secret_key: secret_key.map(SecretKey),
             portal_tls: !tls_off,
+            health_check_interval:cli.health_check_interval,
+            enable_health_check:cli.enable_health_check,
         })
     }
 

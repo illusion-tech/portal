@@ -26,7 +26,7 @@ pub async fn check() {
     }
 }
 
-/// checks for a new release on github
+/// checks fo ra new release on github
 async fn check_inner() -> Result<Option<Update>, Box<dyn std::error::Error>> {
     let update: Update = reqwest::Client::new()
         .get(UPDATE_URL)

@@ -54,17 +54,28 @@ fn client_ip() -> impl Filter<Extract = (IpAddr,), Error = Rejection> + Copy {
 
 #[tracing::instrument(skip(websocket))]
 async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
+    let new_listener = TcpListener::bind("[::]:0").await.expect("failed to bind");
+    let new_listen_addr = new_listener.local_addr().unwrap();
+    info!(
+        "started new listener on {}",
+        new_listen_addr
+    );
+
     let config = get_config();
+    info!(
+        "started portal control server on 0.0.0.0:{}",
+        config.control_port
+    );
     // check if this client is blocked
     if config.blocked_ips.contains(&client_ip) {
         warn!(?client_ip, "client ip is on block list, denying connection");
         let _ = websocket.close().await;
-        return;
+        return ;
     }
 
-    let (websocket, handshake) = match try_client_handshake(websocket).await {
+    let (websocket, handshake) = match try_client_handshake(websocket,new_listen_addr).await {
         Some(ws) => ws,
-        None => return,
+        None => return ,
     };
 
     info!(client_ip=%client_ip, subdomain=%handshake.sub_domain, "open tunnel");
@@ -132,10 +143,31 @@ async fn handle_new_connection(client_ip: IpAddr, websocket: WebSocket) {
         }
         .instrument(observability::remote_trace("control_ping")),
     );
+    loop {
+        tokio::select! {
+            accept_result = new_listener.accept() => {
+                let mut socket = match accept_result {
+                    Ok((socket, _)) => socket,
+                    Err(e) => {
+                        error!("failed to accept socket: {:?}", e);
+                        continue;
+                    }
+                };
+                let peer_addr = socket.peer_addr().unwrap();
+                info!("accepted connection from: {}", peer_addr);
+
+                tokio::spawn(
+                    async move {
+                        remote::accept_connection(socket).await;
+                    }.instrument(observability::remote_trace("remote_connect")),
+                );
+            },
+            }
+    }
 }
 
 #[tracing::instrument(skip(websocket))]
-async fn try_client_handshake(websocket: WebSocket) -> Option<(WebSocket, ClientHandshake)> {
+async fn try_client_handshake(websocket: WebSocket, listen_addr: SocketAddr) -> Option<(WebSocket, ClientHandshake)> {
     // Authenticate client handshake
     let (mut websocket, client_handshake) = client_auth::auth_client_handshake(websocket).await?;
 
@@ -143,9 +175,11 @@ async fn try_client_handshake(websocket: WebSocket) -> Option<(WebSocket, Client
     let data = serde_json::to_vec(&ServerHello::Success {
         sub_domain: client_handshake.sub_domain.clone(),
         hostname: format!(
-            "{}.{}",
-            &client_handshake.sub_domain,
-            get_config().portal_host
+            // "{}.{}",
+            "{}:{}",
+            // &client_handshake.sub_domain,
+            get_config().portal_host,
+            listen_addr.port()
         ),
         client_id: client_handshake.id.clone(),
     })

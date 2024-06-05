@@ -4,7 +4,7 @@ resolver = "2"
 members = [
     "portal_lib",
     "portal",
-    "portal_server",
+    "portal_server", "portal_tcp",
 ]
 
 exclude = [

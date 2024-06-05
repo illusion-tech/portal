@@ -1,9 +1,13 @@
 use crate::get_config;
 use crate::network::Instance;
-use std::net::SocketAddr;
 use tokio::io::AsyncWriteExt;
+use std::net::{IpAddr, SocketAddr};
+use thiserror::Error;
+use reqwest::StatusCode;
+use trust_dns_resolver::TokioAsyncResolver;
+use futures::{FutureExt, SinkExt, StreamExt};
 use tokio::net::TcpStream;
-
+use tokio::sync::broadcast;
 const HTTP_ERROR_PROXYING_TUNNEL_RESPONSE: &[u8] =
     b"HTTP/1.1 500\r\nContent-Length: 28\r\n\r\nError: Error proxying tunnel";
 
@@ -25,5 +29,5 @@ pub async fn proxy_stream(instance: Instance, mut stream: TcpStream) {
         tokio::io::copy(&mut r_read, &mut i_write),
         tokio::io::copy(&mut i_read, &mut r_write),
     )
-    .await;
+        .await;
 }

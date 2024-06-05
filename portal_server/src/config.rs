@@ -45,6 +45,8 @@ struct InternalConfig {
 
     /// The host on which we create tunnels on
     portal_host: Option<String>,
+
+
 }
 
 /// Global service configuration
@@ -85,6 +87,7 @@ pub struct Config {
 
     /// The host on which we create tunnels on
     pub portal_host: String,
+
 }
 
 impl From<InternalConfig> for Config {
@@ -109,6 +112,7 @@ impl From<InternalConfig> for Config {
         let portal_host = config
             .portal_host
             .unwrap_or_else(|| "tunnelto.dev".to_string());
+
 
         Config {
             allowed_hosts,
@@ -181,6 +185,7 @@ impl Config {
             instance_id,
             blocked_ips,
             portal_host,
+
         }
     }
 }

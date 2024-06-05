@@ -4,8 +4,13 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use std::fmt;
 
+
+//处理网络通信的数据包
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
+
+//字符串生成
 pub struct SecretKey(pub String);
 impl SecretKey {
     pub fn generate() -> Self {
@@ -29,6 +34,7 @@ pub struct ReconnectToken(pub String);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
+//服务响应的几种可能类型
 pub enum ServerHello {
     Success {
         sub_domain: String,

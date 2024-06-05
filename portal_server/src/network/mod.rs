@@ -1,5 +1,5 @@
 use futures::future::select_ok;
-use futures::FutureExt;
+use futures::{FutureExt, TryStreamExt};
 use std::net::{IpAddr, SocketAddr};
 use thiserror::Error;
 mod server;
@@ -9,7 +9,9 @@ pub use self::proxy::proxy_stream;
 use crate::network::server::{HostQuery, HostQueryResponse};
 use crate::{get_config, ClientId};
 use reqwest::StatusCode;
+use tokio::net::TcpStream;
 use trust_dns_resolver::TokioAsyncResolver;
+use crate::control_server::{SinkExt, StreamExt};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -24,10 +26,11 @@ pub enum Error {
 
     #[error("Does not serve host")]
     DoesNotServeHost,
+
 }
 
 /// An instance of our server
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Instance {
     pub ip: IpAddr,
 }
@@ -52,6 +55,7 @@ impl Instance {
         tracing::debug!("Found app instances: {:?}", &instances);
         Ok(instances)
     }
+
 
     /// query the instance and see if it runs our host
     async fn serves_host(self, host: &str) -> Result<(Instance, ClientId), Error> {
@@ -87,6 +91,7 @@ impl Instance {
     }
 }
 
+
 /// get the ip address we need to connect to that runs our host
 #[tracing::instrument]
 pub async fn instance_for_host(host: &str) -> Result<(Instance, ClientId), Error> {
@@ -94,12 +99,18 @@ pub async fn instance_for_host(host: &str) -> Result<(Instance, ClientId), Error
         .await?
         .into_iter()
         .map(|i| i.serves_host(host).boxed());
+        // .map(|i| async {
+        //     let serves_host = i.clone().serves_host(host).boxed();
+        //     let serves_websocket_host = i.serves_websocket_host(host).boxed();
+        //     futures::try_join!(serves_host)
+        // });
 
     if instances.len() == 0 {
         return Err(Error::DoesNotServeHost);
     }
-
     let instance = select_ok(instances).await?.0;
     tracing::info!(instance_ip=%instance.0.ip, client_id=%instance.1.to_string(), subdomain=%host, "found instance for host");
+    // let instance = instances.into_iter().find_map(Result::ok).ok_or(Error::DoesNotServeHost)?;
+    // tracing::info!(instance_ip=%instance.0.ip, client_id=%instance.1.to_string(), subdomain=%host, "found instance for WebSocket host");
     Ok(instance)
 }

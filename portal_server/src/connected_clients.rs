@@ -62,14 +62,6 @@ impl Connections {
         connections.clients.remove(&client.id);
         tracing::debug!("rm client: {}", &client.id);
 
-        // // drop all the streams
-        // // if there are no more tunnel clients
-        // if CONNECTIONS.clients.is_empty() {
-        //     let mut streams = ACTIVE_STREAMS.;
-        //     for (_, stream) in streams.drain() {
-        //         stream.tx.close_channel();
-        //     }
-        // }
     }
 
     pub fn client_for_host(host: &String) -> Option<ClientId> {

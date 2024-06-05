@@ -12,6 +12,7 @@ use warp::Filter;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
+//定义的http请求结构体，包含id,状态码，是否重放，路径，方法，请求头，请求体，响应头，响应体，开始时间，结束时间，整个请求等信息
 pub struct Request {
     id: String,
     status: u16,
@@ -26,7 +27,7 @@ pub struct Request {
     completed: chrono::NaiveDateTime,
     entire_request: Vec<u8>,
 }
-
+//添加返回elapsed方法，返回请求消耗时间，如果小于疫苗，返回毫秒否则返回秒数
 impl Request {
     pub fn elapsed(&self) -> String {
         let duration = self.completed - self.started;
@@ -37,13 +38,12 @@ impl Request {
         }
     }
 }
-
+//表示REQUESTS是只初始化一次的锁，存储的是引用计数的读写所，内部存储的是hash映射，映射到字符串，值是以上的Request结构体
 static REQUESTS: OnceLock<Arc<RwLock<HashMap<String, Request>>>> = OnceLock::new();
-
+//返回Request的引用，如果未初始化就适用新哈希映射
 pub fn get_requests() -> &'static Arc<RwLock<HashMap<String, Request>>> {
     REQUESTS.get_or_init(|| Arc::new(RwLock::new(HashMap::new())))
 }
-
 pub fn start_introspect_web_dashboard(config: Config) -> SocketAddr {
     let dash_addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], config.dashboard_port));
 
@@ -90,16 +90,17 @@ pub fn start_introspect_web_dashboard(config: Config) -> SocketAddr {
 }
 
 #[derive(Debug, Clone)]
+//包含reques和response的通道,都是发送字节向量发送，且无界
 pub struct IntrospectChannels {
     pub request: UnboundedSender<Vec<u8>>,
     pub response: UnboundedSender<Vec<u8>>,
 }
-
+//生成全新uuid作为id，创建两个通道一个作为request一个作为response
 pub fn introspect_stream() -> IntrospectChannels {
     let id = Uuid::new_v4();
     let (request_tx, request_rx) = unbounded::<Vec<u8>>();
     let (response_tx, response_rx) = unbounded::<Vec<u8>>();
-
+//用于异步生成一个新的任务，调用collect_stream函数，传入id，request_rx，response_rx
     tokio::spawn(async move { collect_stream(id, request_rx, response_rx).await });
 
     IntrospectChannels {
@@ -107,7 +108,7 @@ pub fn introspect_stream() -> IntrospectChannels {
         response: response_tx,
     }
 }
-
+//接收一个uuid，一个请求接收端和一个响应通道的接收端。
 async fn collect_stream(
     id: Uuid,
     mut request_rx: UnboundedReceiver<Vec<u8>>,
@@ -128,7 +129,7 @@ async fn collect_stream(
     // collect the request
     let mut request_headers = [httparse::EMPTY_HEADER; 100];
     let mut request = httparse::Request::new(&mut request_headers);
-
+    //创建100个空header的数组，然后用这个数组去创建新的http请求，如果解析成功返回头部和主体的分界点。
     let parts_len = match request.parse(collected_request.as_slice()) {
         Ok(httparse::Status::Complete(len)) => len,
         _ => {
@@ -137,7 +138,7 @@ async fn collect_stream(
         }
     };
     let body_data = collected_request.as_slice()[parts_len..].to_vec();
-
+    //用相同的方式其处理响应的数据
     // collect the response
     let mut response_headers = [httparse::EMPTY_HEADER; 100];
     let mut response = httparse::Response::new(&mut response_headers);
@@ -280,11 +281,19 @@ async fn replay_request(
         }
     });
 
-    let tx = local::setup_new_stream(config, tx, StreamId::generate()).await;
+    let tcp_tx = local::setup_new_stream(config.clone(), tx.clone(), StreamId::generate()).await;
+    let new_tx = local::setup_new_stream_new(config, tx, StreamId::generate()).await;
 
-    // send the data to the stream
-    if let Some(mut tx) = tx {
-        let _ = tx.send(StreamMessage::Data(request.entire_request)).await;
+// send the data to the stream
+    if let Some(mut tcp_tx) = tcp_tx {
+        let _ = tcp_tx.send(StreamMessage::Data(request.entire_request.clone())).await;
+    } else {
+        error!("failed to replay request: local tunnel could not connect");
+        return Err(warp::reject::not_found());
+    }
+
+    if let Some(mut ws_tx) = new_tx {
+        let _ = ws_tx.send(StreamMessage::Data(request.entire_request)).await;
     } else {
         error!("failed to replay request: local tunnel could not connect");
         return Err(warp::reject::not_found());

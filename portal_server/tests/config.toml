@@ -1,8 +1,13 @@
 allowed_hosts = [
+  'test.localhost',
   'localhost',
+  'test.portal.illusiontech.cn',
   'portal.illusiontech.cn',
 ]
 
-portal_host = 'portal.illusiontech.cn'
-remote_port = 80
+portal_host = 'localhost' #网络ip
+remote_port = 8080
 local_port = 8000
+
+
+master_sig_key = "40f2aeb4a9c98f684c94596a09a71a5e47157ba373e526d4f18a1067a0076714"
