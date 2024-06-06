@@ -11,28 +11,36 @@ use serde::{Deserialize, Serialize};
 #[builder(default, try_setter, setter(into))]
 pub struct AgentHandshake {
     /// Unique identifier for the Agent.
-    agent_id: AgentId,
+    pub agent_id: AgentId,
+
     /// Name of the Agent.
     #[builder(setter(strip_option))]
-    agent_name: Option<String>,
+    pub agent_name: Option<String>,
+
     /// Authentication information for the Agent, can be a key or anonymous.
-    auth: Auth,
+    pub auth: Auth,
+
     /// The version of the Agent software.
     #[builder(setter(strip_option, custom))]
-    version: Option<Version>,
+    pub version: Option<Version>,
+
     /// Local network information of the Agent.
     #[builder(setter(strip_option))]
-    local_info: Option<LocalInfo>,
+    pub local_info: Option<LocalInfo>,
+
     /// Information about the service the Agent is providing or connecting to.
     #[builder(setter(strip_option))]
-    service_info: Option<ServiceInfo>,
+    pub service_info: Option<ServiceInfo>,
+
     /// Encryption information for secure communication.
     #[builder(setter(strip_option))]
-    encryption: Option<Encryption>,
+    pub encryption: Option<Encryption>,
+
     /// Interval in milliseconds for the Agent to send a heartbeat message.
-    heartbeat_interval: u32,
+    pub heartbeat_interval: u32,
+
     /// Timestamp of the handshake message.
-    timestamp: u64,
+    pub timestamp: u64,
 }
 
 impl AgentHandshake {
@@ -64,6 +72,12 @@ impl Default for AgentId {
         let mut id = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut id);
         AgentId(general_purpose::URL_SAFE_NO_PAD.encode(id))
+    }
+}
+
+impl std::fmt::Display for AgentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
