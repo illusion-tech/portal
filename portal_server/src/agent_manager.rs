@@ -1,16 +1,26 @@
 use std::sync::OnceLock;
 
-use dashmap::{mapref::one::Ref, DashMap};
+use dashmap::{
+    mapref::one::{Ref, RefMut},
+    DashMap,
+};
 use portal_lib::{agent::AgentId, ControlPacket};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 static AGENT_MANAGER: OnceLock<AgentManager> = OnceLock::new();
 
+/// Tunnel for sending and receiving control packets to and from the agent
+pub struct Tunnel {
+    /// Sender for sending control packets to the agent
+    pub tx: UnboundedSender<ControlPacket>,
+    /// Receiver for receiving control packets from the agent
+    pub rx: UnboundedReceiver<ControlPacket>,
+}
+
 // #[derive(Debug, Clone)]
 pub struct Agent {
     pub id: AgentId,
-    pub tx: UnboundedSender<ControlPacket>,
-    pub rx: UnboundedReceiver<ControlPacket>,
+    pub tunnel: Tunnel,
 }
 
 #[derive(Default)]
@@ -34,6 +44,10 @@ impl AgentManager {
     pub fn get(&self, id: &AgentId) -> Option<Ref<AgentId, Agent>> {
         self.agents.get(id)
     }
+
+    pub fn get_mut(&self, id: &AgentId) -> Option<RefMut<AgentId, Agent>> {
+        self.agents.get_mut(id)
+    }
 }
 
 #[cfg(test)]
@@ -48,7 +62,10 @@ mod tests {
 
         let (tx, rx) = unbounded_channel();
         let id: AgentId = "test".into();
-        let agent = Agent { id, tx, rx };
+        let agent = Agent {
+            id: id.clone(),
+            tunnel: Tunnel { tx, rx },
+        };
 
         agent_manager.agents.insert(agent.id.clone(), agent);
 
@@ -68,8 +85,7 @@ mod tests {
         let id: AgentId = "test".into();
         let agent = Agent {
             id: id.clone(),
-            tx,
-            rx,
+            tunnel: Tunnel { tx, rx },
         };
 
         agent_manager.add(agent);
@@ -92,8 +108,7 @@ mod tests {
         let id: AgentId = "test".into();
         let agent = Agent {
             id: id.clone(),
-            tx,
-            rx,
+            tunnel: Tunnel { tx, rx },
         };
 
         agent_manager.add(agent);
@@ -113,8 +128,7 @@ mod tests {
         let id: AgentId = "test".into();
         let agent = Agent {
             id: id.clone(),
-            tx,
-            rx,
+            tunnel: Tunnel { tx, rx },
         };
 
         agent_manager.add(agent);
