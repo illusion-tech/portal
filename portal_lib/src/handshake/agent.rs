@@ -1,10 +1,14 @@
-use core::net::{IpAddr, Ipv4Addr};
+use core::{
+    net::{IpAddr, Ipv4Addr},
+    str::FromStr,
+};
 
 use base64::{engine::general_purpose, Engine};
 use derive_builder::Builder;
 use rand::prelude::*;
 use semver::Version;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// The handshake message structure used by an Agent to communicate with the Server.
 #[derive(Builder, Default, Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -50,6 +54,11 @@ impl AgentHandshake {
 }
 
 impl AgentHandshakeBuilder {
+    pub fn generate_agent_id(&mut self) -> &mut Self {
+        self.agent_id = Some(AgentId::default());
+        self
+    }
+
     pub fn version(&mut self, version: &str) -> &mut Self {
         self.version = Some(Some(version.parse().unwrap()));
         self
@@ -59,19 +68,23 @@ impl AgentHandshakeBuilder {
 /// Unique identifier for an Agent.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(transparent)]
-pub struct AgentId(String);
+pub struct AgentId(Uuid);
 
 impl From<&str> for AgentId {
     fn from(s: &str) -> Self {
-        AgentId(s.into())
+        Uuid::from_str(s).unwrap().into()
+    }
+}
+
+impl From<Uuid> for AgentId {
+    fn from(u: Uuid) -> Self {
+        AgentId(u)
     }
 }
 
 impl Default for AgentId {
     fn default() -> Self {
-        let mut id = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut id);
-        AgentId(general_purpose::URL_SAFE_NO_PAD.encode(id))
+        Uuid::new_v4().into()
     }
 }
 
